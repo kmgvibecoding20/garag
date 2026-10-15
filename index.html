@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Мой гараж — бортовые журналы</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Rubik:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1F2433; --paper:#FFFDF4; --paper-2:#F4EEDB; --peg:#DCAA6E; --peg-hole:#A97B45;
+  --floor:#C8CDD5; --floor-2:#BCC2CB; --yellow:#FFC93C; --red:#E84A3F; --green:#35B26B;
+  --blue:#2F6FD6; --brown:#8A5426; --wood:#C27F42; --metal:#97A1AE; --asphalt:#3C4150;
+  --sky:#9ED8F2; --sky-2:#CDEBF7; --chalk:#2F5D4E; --text:#1F2433; --muted:#5B6274; --bg:#ECE6D6;
+  --shadow:4px 4px 0 var(--ink);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#2A2F3E; --paper-2:#343A4C; --peg:#6F4C2D; --peg-hole:#47301B; --floor:#464C5D; --floor-2:#3D4353;
+    --sky:#1D2A4D; --sky-2:#2C3C66; --text:#F3EFE4; --muted:#B5BACA; --bg:#1B1F2B; --chalk:#21443A;
+    --ink:#0E1118; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#2A2F3E; --paper-2:#343A4C; --peg:#6F4C2D; --peg-hole:#47301B; --floor:#464C5D; --floor-2:#3D4353;
+  --sky:#1D2A4D; --sky-2:#2C3C66; --text:#F3EFE4; --muted:#B5BACA; --bg:#1B1F2B; --chalk:#21443A;
+  --ink:#0E1118; color-scheme: dark;
+}
+:root{ box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+*,*::before,*::after{ box-sizing:inherit; }
+html{ scroll-padding-top:calc(env(safe-area-inset-top,0px) + 130px); }
+body{ margin:0; background:var(--bg); color:var(--text); font:16px/1.5 "Rubik", system-ui, "Segoe UI", Arial, sans-serif; }
+body::before{ content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top,0px); z-index:30; background:var(--sky); }
+h1,h2,h3{ font-family:"Russo One","Rubik",system-ui,sans-serif; font-weight:400; line-height:1.15; margin:0; }
+a{ color:inherit; }
+img{ max-width:100%; display:block; }
+:focus-visible{ outline:3px solid var(--yellow); outline-offset:3px; box-shadow:0 0 0 6px var(--ink); border-radius:6px; }
+.sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+
+/* ---------- Road navigation ---------- */
+.roadbar{ position:sticky; top:env(safe-area-inset-top,0px); z-index:20; background:linear-gradient(var(--sky), var(--sky-2)); border-bottom:4px solid var(--ink); display:flex; align-items:stretch; }
+.road-scroll{ flex:1; overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; }
+.road{ position:relative; min-width:max-content; height:118px; padding:0 40px; display:flex; align-items:flex-end; }
+.road::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:34px; background:
+  repeating-linear-gradient(90deg, var(--yellow) 0 26px, transparent 26px 50px) center/100% 4px no-repeat, var(--asphalt);
+  border-top:3px solid var(--ink); z-index:0; }
+.stops{ display:flex; align-items:flex-end; gap:22px; position:relative; z-index:1; padding-bottom:34px; }
+.stop{ display:flex; flex-direction:column; align-items:center; text-decoration:none; }
+.stop .sign{ font-family:"Russo One",sans-serif; font-size:13px; line-height:1.2; color:#fff; background:var(--blue); border:3px solid var(--ink); border-radius:7px; padding:6px 10px; max-width:150px; text-align:center; box-shadow:3px 3px 0 var(--ink); position:relative; transition:transform .15s; box-sizing:border-box; outline:2px solid #fff; outline-offset:-6px; }
+.stop .pole{ width:6px; height:20px; background:var(--metal); border:2px solid var(--ink); border-bottom:0; }
+.stop-branch .sign{ background:var(--green); font-size:12px; }
+.stop-branch .pole{ height:12px; }
+.stop-service .sign{ background:var(--brown); }
+.stop-main .sign{ background:var(--red); }
+.stop:hover .sign{ transform:translateY(-3px); }
+.stop.active .sign{ background:var(--yellow); color:var(--ink); outline-color:var(--ink); }
+.badge{ position:absolute; top:-10px; right:-10px; min-width:22px; height:22px; padding:0 5px; border-radius:11px; background:var(--red); color:#fff; border:2px solid var(--ink); font:700 12px/18px "Rubik",sans-serif; }
+.marker{ position:absolute; left:0; bottom:3px; width:64px; z-index:2; transition:transform .9s cubic-bezier(.45,.05,.3,1); pointer-events:none; }
+.marker .mk{ transition:transform .2s; }
+.marker.flip .mk{ transform:scaleX(-1); }
+.marker.driving svg{ animation:bob .18s ease-in-out infinite alternate; }
+@keyframes bob{ to{ transform:translateY(-2px); } }
+.theme-btn{ flex:none; margin:10px 12px 40px 0; align-self:flex-start; }
+
+/* ---------- Buttons & inputs ---------- */
+.btn{ font:600 15px/1.2 "Rubik",sans-serif; display:inline-flex; align-items:center; gap:8px; padding:9px 14px; border:3px solid var(--ink); border-radius:10px; background:var(--yellow); color:#1F2433; box-shadow:3px 3px 0 var(--ink); cursor:pointer; text-decoration:none; transition:transform .08s, box-shadow .08s; }
+.btn:hover{ transform:translate(-1px,-1px); box-shadow:4px 4px 0 var(--ink); }
+.btn:active{ transform:translate(2px,2px); box-shadow:1px 1px 0 var(--ink); }
+.btn.ghost{ background:var(--paper); color:var(--text); }
+.btn.danger{ background:var(--red); color:#fff; }
+.btn.small{ padding:5px 10px; font-size:13px; border-width:2px; box-shadow:2px 2px 0 var(--ink); }
+.btn.icon{ padding:4px 9px; }
+label.f{ display:flex; flex-direction:column; gap:4px; font-size:13px; font-weight:500; color:var(--muted); }
+input,select,textarea{ font:15px/1.3 "Rubik",sans-serif; color:var(--text); background:var(--paper); border:2px solid var(--ink); border-radius:8px; padding:8px 10px; width:100%; min-width:0; }
+textarea{ min-height:70px; resize:vertical; }
+input[type=checkbox],input[type=radio]{ width:20px; height:20px; accent-color:var(--green); flex:none; }
+input[type=color]{ padding:2px; height:40px; }
+.grid2{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.grid3{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.span2{ grid-column:span 2; }
+@media (max-width:560px){ .grid2,.grid3{ grid-template-columns:1fr; } .span2{ grid-column:auto; } }
+
+/* ---------- Garage scene ---------- */
+main{ max-width:1320px; margin:0 auto; padding:0 0 60px; }
+.pegboard{ background-color:var(--peg); background-image:radial-gradient(circle, var(--peg-hole) 2.6px, transparent 3px); background-size:24px 24px; }
+.scene{ border-bottom:4px solid var(--ink); }
+.wall-top{ display:grid; grid-template-columns:1fr minmax(260px,380px); gap:28px; align-items:start; padding:34px 28px 26px; }
+.garage-sign{ justify-self:start; display:inline-flex; align-items:center; gap:18px; font-size:clamp(34px,6vw,64px); color:#1F2433; background:linear-gradient(#E6EAF0,#B9C1CC); border:4px solid var(--ink); border-radius:14px; padding:14px 26px; box-shadow:6px 6px 0 var(--ink); transform:rotate(-1.5deg); letter-spacing:.01em; }
+.rivet{ width:14px; height:14px; border-radius:50%; background:#7D8795; border:3px solid var(--ink); flex:none; }
+.garage-lead{ margin:22px 0 0; max-width:52ch; background:var(--paper); border:3px solid var(--ink); border-radius:10px; padding:10px 14px; box-shadow:var(--shadow); }
+.board{ display:block; text-decoration:none; background:var(--chalk); color:#F5F2E8; border:10px solid var(--wood); outline:3px solid var(--ink); border-radius:6px; padding:14px 16px; box-shadow:6px 6px 0 var(--ink); min-height:170px; }
+.board h2{ font-size:22px; margin-bottom:8px; }
+.board ul{ margin:0; padding:0; list-style:none; font-size:14px; }
+.board li{ display:flex; gap:8px; align-items:baseline; padding:3px 0; border-bottom:1px dashed rgba(255,255,255,.25); }
+.dot{ width:10px; height:10px; border-radius:50%; flex:none; border:2px solid var(--ink); }
+.dot.red{ background:var(--red); } .dot.yellow{ background:var(--yellow); } .dot.green{ background:var(--green); }
+.demo-note{ margin:0 28px 22px; display:flex; flex-wrap:wrap; align-items:center; gap:12px; background:var(--paper); border:3px dashed var(--ink); border-radius:10px; padding:10px 14px; }
+
+.bays{ display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
+.bay{ display:flex; flex-direction:column; min-width:0; }
+.bay-wall{ position:relative; padding:0 18px 18px; height:330px; display:flex; flex-direction:column; align-items:center; }
+.lamp{ display:flex; flex-direction:column; align-items:center; }
+.lamp .cord{ width:3px; height:26px; background:var(--ink); }
+.lamp .shade{ width:70px; height:26px; background:#4E5668; border:3px solid var(--ink); clip-path:polygon(25% 0,75% 0,100% 100%,0 100%); position:relative; }
+.lamp .shade{ clip-path:none; border-radius:40px 40px 6px 6px; }
+.lamp .bulb{ width:30px; height:18px; margin-top:-3px; border:3px solid var(--ink); border-top:0; border-radius:0 0 16px 16px; background:#ddd; }
+.lamp-green .bulb{ background:var(--green); box-shadow:0 10px 26px 6px rgba(53,178,107,.55); }
+.lamp-yellow .bulb{ background:var(--yellow); box-shadow:0 10px 26px 6px rgba(255,201,60,.6); }
+.lamp-red .bulb{ background:var(--red); box-shadow:0 10px 26px 8px rgba(232,74,63,.6); animation:blink 1.2s steps(2,end) infinite; }
+.lamp-unknown .bulb{ background:#C9CED6; }
+@keyframes blink{ 50%{ background:#7d2620; box-shadow:none; } }
+.lamp-text{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; max-width:100%; font-size:13px; margin:8px 0 0; background:var(--paper); border:2px solid var(--ink); border-radius:8px; padding:3px 9px; text-align:center; }
+.polaroid{ margin-top:14px; display:block; width:190px; background:#fff; color:#1F2433; padding:9px 9px 6px; border:3px solid var(--ink); box-shadow:var(--shadow); transform:rotate(-2deg); text-decoration:none; position:relative; transition:transform .2s; }
+.bay:nth-child(2n) .polaroid{ transform:rotate(2deg); }
+.polaroid:hover{ transform:rotate(0) scale(1.03); }
+.polaroid::before{ content:""; position:absolute; top:-11px; left:50%; width:18px; height:18px; margin-left:-9px; border-radius:50%; background:var(--red); border:3px solid var(--ink); }
+.polaroid .ph{ aspect-ratio:4/3; background:#E5E8EE; display:flex; align-items:center; justify-content:center; overflow:hidden; border:2px solid var(--ink); }
+.polaroid .ph img{ width:100%; height:100%; object-fit:cover; }
+.polaroid .ph span{ font-size:13px; color:#5B6274; text-align:center; padding:8px; }
+.polaroid figcaption{ font-family:"Russo One",sans-serif; font-size:15px; text-align:center; padding-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bay-floor{ background:linear-gradient(var(--floor),var(--floor-2)); border-top:10px solid; border-image:repeating-linear-gradient(45deg,#1F2433 0 14px,var(--yellow) 14px 28px) 10; padding:16px 18px 22px; display:flex; flex-direction:column; align-items:center; gap:12px; flex:1; position:relative; }
+.bay + .bay .bay-floor::before{ content:""; position:absolute; left:-4px; top:0; bottom:0; width:8px; background:var(--yellow); border:2px solid var(--ink); }
+.bay-num{ position:absolute; left:20px; top:14px; font:44px/1 "Russo One",sans-serif; color:rgba(255,255,255,.75); -webkit-text-stroke:2px var(--ink); }
+.car-link{ display:block; width:min(100%,250px); text-decoration:none; }
+.sil{ width:100%; height:auto; overflow:visible; filter:drop-shadow(0 6px 0 rgba(0,0,0,.18)); }
+.plate{ font:16px/1 "Russo One",sans-serif; background:#fff; color:#1F2433; border:3px solid var(--ink); border-radius:6px; padding:5px 12px; letter-spacing:.06em; }
+.mini-rack{ width:100%; max-width:290px; border-left:8px solid var(--metal); border-right:8px solid var(--metal); outline:3px solid var(--ink); background:rgba(0,0,0,.08); display:grid; grid-template-columns:1fr 1fr; }
+.mini-shelf{ display:flex; flex-direction:column; align-items:center; gap:2px; text-decoration:none; padding:8px 4px 0; border-bottom:8px solid var(--wood); box-shadow:inset 0 -3px 0 var(--ink); font-size:12.5px; font-weight:500; text-align:center; line-height:1.2; padding-bottom:10px; transition:background .15s; }
+.mini-shelf:hover{ background:rgba(255,255,255,.35); }
+.mini-shelf svg{ width:46px; height:34px; transition:transform .2s; }
+.mini-shelf:hover svg{ transform:translateY(-4px) rotate(-3deg); }
+.mini-shelf b{ font-weight:700; }
+.bay-add{ min-height:420px; margin:24px; border:4px dashed var(--ink); border-radius:16px; background:rgba(255,255,255,.35); font:20px/1.2 "Russo One",sans-serif; color:#1F2433; cursor:pointer; }
+.bay-add:hover{ background:rgba(255,255,255,.6); }
+@media (max-width:720px){
+  .wall-top{ grid-template-columns:1fr; padding:22px 16px; }
+  .bays{ display:flex; overflow-x:auto; scroll-snap-type:x mandatory; }
+  .bay,.bay-add{ flex:0 0 86vw; scroll-snap-align:start; }
+  .bay-add{ flex-basis:70vw; min-height:300px; }
+  .demo-note{ margin:0 16px 18px; }
+}
+
+/* ---------- Car view ---------- */
+.page{ padding:26px 24px; }
+.page-head{ display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-bottom:20px; }
+.page-head h1{ font-size:clamp(26px,4vw,40px); }
+.page-head .sub{ color:var(--muted); width:100%; margin:-6px 0 0; }
+.car-grid{ display:grid; grid-template-columns:minmax(0,1.1fr) minmax(260px,.75fr); gap:26px; align-items:start; }
+.car-grid .wide{ grid-column:1 / -1; }
+@media (max-width:860px){ .car-grid{ grid-template-columns:1fr; } }
+.clip + .clip{ margin-top:34px; }
+.clip{ background:var(--paper); border:3px solid var(--ink); border-radius:12px; box-shadow:6px 6px 0 var(--ink); padding:30px 22px 22px; position:relative; margin-top:14px; min-width:0; }
+.clip::before{ content:""; position:absolute; top:-15px; left:50%; width:96px; height:26px; margin-left:-48px; background:linear-gradient(#D6DBE2,#9AA3AF); border:3px solid var(--ink); border-radius:8px 8px 4px 4px; }
+.clip h2{ font-size:22px; margin-bottom:14px; }
+.clip h3{ font-size:17px; margin:18px 0 8px; }
+.passport-top{ display:grid; grid-template-columns:minmax(0,240px) 1fr; gap:22px; }
+@media (max-width:560px){ .passport-top{ grid-template-columns:1fr; } }
+.passport-top .polaroid{ width:100%; margin:0; transform:rotate(-1.5deg); }
+.thumbs{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.thumbs img,.thumb{ width:62px; height:62px; object-fit:cover; border:2px solid var(--ink); border-radius:6px; cursor:zoom-in; }
+.thumb-wrap{ position:relative; }
+.thumb-wrap button{ position:absolute; top:-8px; right:-8px; width:24px; height:24px; border-radius:50%; border:2px solid var(--ink); background:var(--red); color:#fff; font-weight:700; cursor:pointer; line-height:1; padding:0; }
+dl.spec{ display:grid; grid-template-columns:auto 1fr; gap:6px 14px; margin:0; font-size:15px; }
+dl.spec dt{ color:var(--muted); }
+dl.spec dd{ margin:0; font-weight:500; overflow-wrap:anywhere; }
+.descr{ margin:14px 0 0; padding:10px 12px; background:var(--paper-2); border-radius:8px; border:2px dashed var(--ink); white-space:pre-wrap; }
+.actions{ display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
+
+.rack{ border-left:14px solid var(--metal); border-right:14px solid var(--metal); outline:3px solid var(--ink); background:rgba(0,0,0,.06); margin-top:14px; box-shadow:6px 6px 0 var(--ink); }
+.rack-title{ font-family:"Russo One",sans-serif; text-align:center; padding:8px; background:var(--ink); color:#fff; font-size:15px; }
+.shelf{ display:flex; align-items:flex-end; gap:14px; padding:12px 16px 12px; text-decoration:none; border-bottom:12px solid var(--wood); box-shadow:inset 0 -3px 0 var(--ink); transition:background .15s; }
+.shelf:hover,.shelf.active{ background:rgba(255,255,255,.4); }
+.shelf svg{ width:72px; height:50px; flex:none; transition:transform .2s; }
+.shelf:hover svg{ transform:translateY(-5px) rotate(-3deg); }
+.shelf .st{ display:flex; flex-direction:column; line-height:1.2; }
+.shelf .st b{ font-family:"Russo One",sans-serif; font-weight:400; font-size:16px; }
+.shelf .st small{ color:var(--muted); font-size:13px; }
+
+/* ---------- Status list ---------- */
+.status-list{ list-style:none; margin:0; padding:0; }
+.status-list li{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 12px; padding:10px 0; border-bottom:2px dashed var(--paper-2); }
+.status-list .nm{ font-weight:500; }
+.status-list .meta{ grid-column:1 / -1; font-size:13px; color:var(--muted); }
+.bar{ grid-column:1 / -1; height:10px; border:2px solid var(--ink); border-radius:6px; background:var(--paper-2); overflow:hidden; }
+.bar i{ display:block; height:100%; }
+.chip{ display:inline-block; font-size:12.5px; font-weight:600; padding:2px 9px; border:2px solid var(--ink); border-radius:20px; white-space:nowrap; color:#1F2433; }
+.chip.red{ background:var(--red); color:#fff; } .chip.yellow{ background:var(--yellow); } .chip.green{ background:var(--green); color:#fff; }
+.chip.grey{ background:#D5DAE1; } .chip.blue{ background:var(--blue); color:#fff; }
+
+/* ---------- Records ---------- */
+.toolbar{ display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:14px; }
+.toolbar .sum{ margin-left:auto; font-weight:600; }
+.recs{ list-style:none; margin:0; padding:0; }
+.rec{ padding:14px 0; border-bottom:2px dashed var(--paper-2); display:grid; grid-template-columns:110px minmax(0,1fr) auto; gap:4px 16px; }
+.rec:last-child{ border-bottom:0; }
+.rec .when{ font-weight:600; }
+.rec .when small{ display:block; color:var(--muted); font-weight:400; }
+.rec .what b{ display:block; }
+.rec .what p{ margin:2px 0 0; font-size:14px; color:var(--muted); white-space:pre-wrap; }
+.rec .what ul{ margin:4px 0 0; padding-left:18px; font-size:14px; }
+.rec .cost{ text-align:right; font-weight:700; white-space:nowrap; }
+.rec .cost .actions{ justify-content:flex-end; margin-top:8px; gap:6px; }
+@media (max-width:600px){ .rec{ grid-template-columns:1fr; } .rec .cost{ text-align:left; } .rec .cost .actions{ justify-content:flex-start; } }
+.empty{ text-align:center; padding:26px 10px; color:var(--muted); }
+.empty svg{ width:90px; margin:0 auto 8px; display:block; }
+table.t{ width:100%; border-collapse:collapse; font-size:14px; }
+table.t th{ text-align:left; font-weight:600; color:var(--muted); border-bottom:3px solid var(--ink); padding:6px 8px; }
+table.t td{ padding:8px; border-bottom:2px dashed var(--paper-2); vertical-align:top; }
+.tscroll{ overflow-x:auto; }
+.tire-card{ border:3px solid var(--ink); border-radius:12px; padding:14px; background:var(--paper-2); display:grid; grid-template-columns:70px minmax(0,1fr); gap:14px; }
+.tire-card + .tire-card{ margin-top:14px; }
+.tire-card svg{ width:70px; }
+.tire-card h3{ margin:0 0 4px; }
+.tread{ display:flex; flex-wrap:wrap; gap:6px; font-size:13px; margin-top:6px; }
+.tread span{ background:var(--paper); border:2px solid var(--ink); border-radius:6px; padding:1px 7px; }
+
+/* ---------- Modal ---------- */
+dialog{ border:4px solid var(--ink); border-radius:14px; padding:0; background:var(--paper); color:var(--text); width:min(760px,94vw); max-height:92vh; box-shadow:8px 8px 0 var(--ink); }
+dialog::backdrop{ background:rgba(20,24,34,.55); }
+dialog form{ display:flex; flex-direction:column; max-height:92vh; }
+.m-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 20px; background:var(--yellow); color:#1F2433; border-bottom:3px solid var(--ink); }
+.m-head h2{ font-size:20px; }
+.m-body{ padding:18px 20px; overflow:auto; display:flex; flex-direction:column; gap:14px; }
+.m-foot{ display:flex; justify-content:flex-end; gap:10px; padding:12px 20px; border-top:3px solid var(--ink); background:var(--paper-2); }
+fieldset{ border:2px solid var(--ink); border-radius:10px; padding:10px 14px 14px; margin:0; }
+legend{ font-family:"Russo One",sans-serif; padding:0 6px; }
+.work{ padding:8px 0; border-bottom:1px dashed var(--muted); }
+.work:last-child{ border-bottom:0; }
+.work-check{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; cursor:pointer; font-weight:500; }
+.work-details{ display:none; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin:8px 0 2px 30px; }
+.work.on .work-details{ display:grid; }
+@media (max-width:600px){ .work-details{ grid-template-columns:1fr 1fr; margin-left:0; } }
+.row{ display:grid; gap:8px; align-items:center; margin-bottom:8px; }
+.row.err{ grid-template-columns:110px minmax(0,1fr) 130px 130px 36px; }
+.row.cust{ grid-template-columns:minmax(0,1fr) 120px 120px 36px; }
+@media (max-width:600px){ .row.err,.row.cust{ grid-template-columns:1fr 1fr; } }
+.hint{ font-size:13px; color:var(--muted); margin:0; }
+.check{ display:flex; align-items:center; gap:8px; }
+
+.toasts{ position:fixed; right:16px; bottom:calc(16px + env(safe-area-inset-bottom,0px)); z-index:50; display:flex; flex-direction:column; gap:10px; max-width:min(380px,92vw); }
+.toast{ background:var(--paper); border:3px solid var(--ink); border-radius:10px; box-shadow:var(--shadow); padding:10px 14px; display:flex; gap:10px; align-items:flex-start; }
+.toast.warn{ background:var(--yellow); color:#1F2433; }
+.toast button{ margin-left:auto; background:none; border:0; font-size:18px; cursor:pointer; color:inherit; }
+.viewer{ width:min(1000px,96vw); }
+.viewer img{ width:100%; max-height:80vh; object-fit:contain; background:#000; }
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{ animation:none !important; transition:none !important; }
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+</head>
+<body>
+<header class="roadbar">
+  <nav class="road-scroll" aria-label="Маршрут по гаражу">
+    <div class="road" id="road">
+      <div class="stops" id="stops"></div>
+      <div class="marker" id="marker" aria-hidden="true"><div class="mk">
+        <svg viewBox="0 0 64 36"><path d="M4 26v-9q1-4 6-5l9-1 8-7q2-2 5-2h13q3 0 5 3l6 6 5 1q3 1 3 5v9z" fill="#E84A3F" stroke="#1F2433" stroke-width="3" stroke-linejoin="round"/><path d="M29 7h9v6H22z M42 7h4q2 0 3 2l4 4H42z" fill="#BFE6F5" stroke="#1F2433" stroke-width="2" stroke-linejoin="round"/><rect x="55" y="17" width="5" height="4" rx="1" fill="#FFE27A" stroke="#1F2433" stroke-width="1.5"/><circle cx="17" cy="27" r="6" fill="#1F2433"/><circle cx="17" cy="27" r="2.5" fill="#D5DAE1"/><circle cx="48" cy="27" r="6" fill="#1F2433"/><circle cx="48" cy="27" r="2.5" fill="#D5DAE1"/></svg>
+      </div></div>
+    </div>
+  </nav>
+  <button class="btn small ghost theme-btn" data-action="toggle-theme" id="themeBtn">Ночь</button>
+</header>
+<main id="app" tabindex="-1"></main>
+<dialog id="modal"><form id="mform" novalidate>
+  <div class="m-head"><h2 id="mtitle"></h2><button type="button" class="btn small ghost" data-action="close-modal">Закрыть</button></div>
+  <div class="m-body" id="mbody"></div>
+  <div class="m-foot" id="mfoot"><button type="button" class="btn ghost" data-action="close-modal">Отмена</button><button type="submit" class="btn" id="msubmit">Сохранить</button></div>
+</form></dialog>
+<dialog id="viewer" class="viewer"><form method="dialog"><div class="m-head"><h2>Фото</h2><button class="btn small ghost">Закрыть</button></div><img id="viewerImg" alt=""></form></dialog>
+<input type="file" id="importFile" accept="application/json,.json" hidden>
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+<script>
+/* =================== Utilities =================== */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2, '0');
+const toISO = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const todayISO = () => toISO(new Date());
+const parseISO = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+const addMonths = (s, m) => { const d = parseISO(s); const day = d.getDate(); d.setDate(1); d.setMonth(d.getMonth()+m); const last = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate(); d.setDate(Math.min(day,last)); return toISO(d); };
+const addDays = (s, n) => { const d = parseISO(s); d.setDate(d.getDate()+n); return toISO(d); };
+const diffDays = (a, b) => Math.round((parseISO(b) - parseISO(a)) / 86400000);
+const fmtDate = s => s ? s.split('-').reverse().join('.') : '—';
+const grp = n => String(Math.round(Number(n)||0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+const fmtKm = n => (n == null || isNaN(n)) ? '—' : grp(n) + ' км';
+const fmtMoney = n => grp(n) + ' ₽';
+const num = v => (v === '' || v == null) ? 0 : (Number(String(v).replace(',', '.')) || 0);
+const byDate = (a, b) => (a.date||'').localeCompare(b.date||'') || (a.mileage||0) - (b.mileage||0);
+const INK = '#1F2433';
+const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* =================== Storage (IndexedDB, fallback to memory) =================== */
+const DB_NAME = 'garage-logbook', STORE = 'kv';
+let dbConn = null, memoryMode = false;
+function openDB(){
+  if (dbConn) return Promise.resolve(dbConn);
+  return new Promise((res, rej) => {
+    try {
+      const r = indexedDB.open(DB_NAME, 1);
+      r.onupgradeneeded = () => r.result.createObjectStore(STORE);
+      r.onsuccess = () => { dbConn = r.result; res(dbConn); };
+      r.onerror = () => rej(r.error);
+    } catch (e) { rej(e); }
+  });
+}
+async function loadState(){
+  try {
+    const db = await openDB();
+    return await new Promise((res, rej) => {
+      const g = db.transaction(STORE, 'readonly').objectStore(STORE).get('state');
+      g.onsuccess = () => res(g.result || null); g.onerror = () => rej(g.error);
+    });
+  } catch (e) { memoryMode = true; return null; }
+}
+let saveTimer;
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    if (memoryMode) return;
+    try {
+      const db = await openDB();
+      db.transaction(STORE, 'readwrite').objectStore(STORE).put(JSON.parse(JSON.stringify(state)), 'state');
+    } catch (e) { memoryMode = true; toast('Браузер не дал сохранить данные. Изменения живут до закрытия вкладки, сделайте резервную копию в настройках.', 'warn'); }
+  }, 150);
+}
+const prefGet = k => { try { return localStorage.getItem(k); } catch(e){ return null; } };
+const prefSet = (k, v) => { try { localStorage.setItem(k, v); } catch(e){} };
+
+/* =================== Domain =================== */
+const TYPES = { maintenance:'ТО', diagnostics:'Диагностика', minor:'Мелкий ремонт', major:'Крупный ремонт', tire:'Смена шин' };
+const SHELVES = [
+  { id:'to', title:'Техобслуживание', type:'maintenance', icon:'oil' },
+  { id:'diag', title:'Диагностика и ошибки', type:'diagnostics', icon:'scanner' },
+  { id:'minor', title:'Мелкие ремонты', type:'minor', icon:'toolbox' },
+  { id:'major', title:'Крупные ремонты', type:'major', icon:'engine' },
+  { id:'tires', title:'Шины', type:'tire', icon:'tires' },
+  { id:'report', title:'Отчёты', icon:'folder' },
+  { id:'log', title:'Журнал', icon:'book' },
+];
+const SEASONS = { summer:'Лето', 'winter-studded':'Зима, шипы', 'winter-friction':'Зима, липучка', allseason:'Всесезон' };
+const SYSTEMS = ['Двигатель','АКПП','ABS / ESP','Подушки безопасности','Электрика','Климат','Прочее'];
+const ERR_STATUS = { active:'Активна', resolved:'Устранена', ignored:'Игнорируется' };
+const UNITS = ['Двигатель','Коробка передач','Подвеска','Тормоза','Кузов','Электрика','Рулевое','Прочее'];
+
+function defaultItems(){
+  return [
+    { id:'oil', name:'Замена моторного масла и масляного фильтра', group:'mandatory', km:10000, months:12, applicable:true },
+    { id:'air', name:'Замена воздушного фильтра', group:'mandatory', km:30000, months:24, applicable:true },
+    { id:'cabin', name:'Замена салонного фильтра', group:'mandatory', km:15000, months:12, applicable:true },
+    { id:'fuel', name:'Замена топливного фильтра', group:'mandatory', km:60000, months:48, applicable:true },
+    { id:'plugs', name:'Замена свечей зажигания', group:'mandatory', km:60000, months:48, applicable:true },
+    { id:'brakefluid', name:'Замена тормозной жидкости', group:'additional', km:0, months:24, applicable:true },
+    { id:'coolant', name:'Замена антифриза', group:'additional', km:0, months:0, applicable:true },
+    { id:'atf', name:'Замена масла в АКПП', group:'additional', km:0, months:0, applicable:true },
+    { id:'transfer', name:'Замена масла в раздатке и редукторах', group:'additional', km:0, months:0, applicable:true },
+    { id:'pads', name:'Замена тормозных колодок', group:'additional', km:0, months:0, applicable:true },
+    { id:'wipers', name:'Замена щёток стеклоочистителя', group:'additional', km:0, months:0, applicable:true },
+    { id:'battery', name:'Замена аккумулятора', group:'additional', km:0, months:0, applicable:true },
+    { id:'ac', name:'Проверка и заправка кондиционера', group:'additional', km:0, months:0, applicable:true },
+    { id:'throttle', name:'Промывка дроссельной заслонки', group:'additional', km:0, months:0, applicable:true },
+    { id:'belt', name:'Замена приводного ремня', group:'additional', km:0, months:0, applicable:true },
+  ];
+}
+function costsOf(r){
+  if (r.type === 'maintenance') {
+    const p = (r.items||[]).reduce((s,i)=>s+num(i.partCost),0);
+    const l = (r.items||[]).reduce((s,i)=>s+num(i.laborCost),0);
+    return { parts:p, labor:l, total:p+l };
+  }
+  const p = num(r.partsCost), l = num(r.laborCost);
+  return { parts:p, labor:l, total:p+l };
+}
+
+function seed(){
+  const now = new Date().toISOString();
+  const cars = [
+    { id:'teramont', make:'Volkswagen', model:'Teramont', year:2022, trim:'', engine:'2.0 TSI, 220 л.с., бензин', transmission:'АКПП, 8 ступеней', drive:'Полный', body:'suv', bodyColor:'#3E73C4', colorName:'', vin:'', plate:'', sts:'', purchaseDate:'2022-06-10', purchaseMileage:0, mileage:41200, description:'Добавьте отличительные признаки: сколы, наклейки, аксессуары.', photo:'', photos:[], items:defaultItems() },
+    { id:'tucson', make:'Hyundai', model:'Tucson', year:2020, trim:'', engine:'2.0 MPI, 150 л.с., бензин', transmission:'АКПП, 6 ступеней', drive:'Полный', body:'suv', bodyColor:'#2A9D8F', colorName:'', vin:'', plate:'', sts:'', purchaseDate:'2020-09-01', purchaseMileage:0, mileage:68500, description:'Добавьте отличительные признаки: сколы, наклейки, аксессуары.', photo:'', photos:[], items:defaultItems() },
+    { id:'camry', make:'Toyota', model:'Camry', year:2014, trim:'', engine:'2.5, 181 л.с., бензин', transmission:'АКПП, 6 ступеней', drive:'Передний', body:'sedan', bodyColor:'#A9B3C0', colorName:'', vin:'', plate:'', sts:'', purchaseDate:'2014-05-20', purchaseMileage:0, mileage:187300, description:'Добавьте отличительные признаки: сколы, наклейки, аксессуары.', photo:'', photos:[], items:defaultItems() },
+  ];
+  const R = (carId, type, date, mileage, extra) => ({ id:uid(), carId, type, date, mileage, demo:true, attachments:[], createdAt:now, updatedAt:now, ...extra });
+  const I = (itemId, name, partBrand, partCost, laborCost) => ({ itemId, name, partBrand, partNumber:'', partCost, laborCost });
+  const ts = { t1:uid(), t2:uid(), u1:uid(), u2:uid(), c1:uid(), c2:uid() };
+  const records = [
+    R('teramont','maintenance','2025-11-20',31000,{ place:'Дилерский центр', items:[I('oil','Замена моторного масла и масляного фильтра','Castrol',9800,1800), I('cabin','Замена салонного фильтра','MANN',1400,500), I('air','Замена воздушного фильтра','MANN',1900,400)], description:'Плановое ТО' }),
+    R('teramont','diagnostics','2026-03-12',35500,{ method:'СТО', place:'Сервис «Турбо»', laborCost:1500, partsCost:0, errors:[{ code:'P0299', desc:'Недостаточное давление наддува', system:'Двигатель', status:'resolved' }], description:'Горел чек, автомобиль терял тягу' }),
+    R('teramont','minor','2026-03-14',35540,{ place:'Сервис «Турбо»', title:'Потеря тяги, ошибка P0299', description:'Замена хомута патрубка интеркулера', partsDesc:'Хомут, 1 шт', partsCost:1200, laborCost:2500, warrantyMonths:6, warrantyKm:0, linkedCodes:'P0299' }),
+    R('teramont','tire','2026-04-18',36100,{ tireOn:ts.t1, tireOff:ts.t2, mountCost:4000, storageCost:6000, laborCost:10000, partsCost:0, balance:true, description:'' }),
+    R('tucson','maintenance','2024-08-22',45000,{ place:'Самостоятельно', items:[I('plugs','Замена свечей зажигания','NGK',4800,0), I('air','Замена воздушного фильтра','Filtron',900,0)], description:'' }),
+    R('tucson','maintenance','2026-05-14',61000,{ place:'Дилерский центр', items:[I('oil','Замена моторного масла и масляного фильтра','Hyundai',5200,1200), I('cabin','Замена салонного фильтра','Hyundai',1100,400)], description:'' }),
+    R('tucson','minor','2026-07-02',64000,{ place:'Сервис «Колодка»', title:'Скрип передних тормозов', description:'Замена передних тормозных колодок', partsDesc:'Колодки передние, комплект', partsCost:5200, laborCost:1500, warrantyMonths:12, warrantyKm:20000, linkedCodes:'' }),
+    R('tucson','diagnostics','2026-09-10',67200,{ method:'Сканер OBD-II', place:'Самостоятельно', laborCost:0, partsCost:0, errors:[{ code:'P0171', desc:'Слишком бедная смесь, банк 1', system:'Двигатель', status:'active' }], description:'Проверить подсос воздуха' }),
+    R('camry','major','2025-02-10',168000,{ place:'Сервис «Подвеска+»', title:'Стук в передней подвеске', description:'Замена передних амортизаторных стоек и опорных подшипников', partsDesc:'Стойки KYB, опоры', unit:'Подвеска', orderNo:'ЗН-0211', downFrom:'2025-02-10', downTo:'2025-02-11', partsCost:24000, laborCost:6000, warrantyMonths:12, warrantyKm:0, linkedCodes:'' }),
+    R('camry','maintenance','2026-08-05',183000,{ place:'Сервис «Подвеска+»', items:[I('oil','Замена моторного масла и масляного фильтра','Toyota',4200,1000), I('air','Замена воздушного фильтра','Toyota',1000,300), I('cabin','Замена салонного фильтра','Denso',900,300), I('plugs','Замена свечей зажигания','Denso',5600,1500)], description:'' }),
+    R('camry','tire','2026-04-20',180500,{ tireOn:ts.c2, tireOff:ts.c1, mountCost:3000, storageCost:0, laborCost:3000, partsCost:0, balance:true, description:'' }),
+    R('camry','tire','2026-10-12',187000,{ tireOn:ts.c1, tireOff:ts.c2, mountCost:3200, storageCost:0, laborCost:3200, partsCost:0, balance:true, description:'' }),
+  ];
+  const T = (id, carId, season, brand, model, size, index, dot, tread, storage, mounted) => ({ id, carId, season, brand, model, size, index, dot, rimType:'Литые', rimSize:size.split(' ').pop(), tread, storage, purchaseDate:'', cost:0, mounted, demo:true });
+  const tireSets = [
+    T(ts.t1,'teramont','summer','Michelin','Pilot Sport 4 SUV','255/50 R20','109Y','2023',[{date:'2026-04-18',mm:6.5}],'На автомобиле',true),
+    T(ts.t2,'teramont','winter-studded','Nokian Tyres','Hakkapeliitta 10 SUV','255/50 R20','109T','2022',[{date:'2026-04-18',mm:8}],'Шинный отель «Колесо», договор 1245',false),
+    T(ts.u1,'tucson','summer','Hankook','Ventus Prime 4','225/55 R18','98V','2024',[{date:'2026-05-01',mm:7}],'На автомобиле',true),
+    T(ts.u2,'tucson','winter-friction','Continental','VikingContact 7','225/55 R18','102T','2023',[{date:'2026-04-10',mm:7.5}],'Гараж, стеллаж у входа',false),
+    T(ts.c1,'camry','winter-studded','Ikon Tyres','Nordman 7','215/55 R17','98T','2023',[{date:'2026-10-12',mm:8.2}],'На автомобиле',true),
+    T(ts.c2,'camry','summer','Toyo','Proxes Comfort','215/55 R17','94V','2024',[{date:'2026-10-12',mm:6.1}],'Балкон, в чехлах',false),
+  ];
+  return { version:1, cars, records, tireSets, settings:{ toWinter:'10-15', toSummer:'04-15', lastBackupAt:null, createdAt:todayISO() } };
+}
+
+let state;
+const carById = id => state.cars.find(c => c.id === id);
+const carName = c => `${c.make} ${c.model}`;
+const recordsOf = (carId, type) => state.records.filter(r => r.carId === carId && (!type || r.type === type));
+const currentMileage = car => Math.max(num(car.mileage), ...recordsOf(car.id).map(r => num(r.mileage)), 0);
+
+function avgKmPerDay(car){
+  const recs = recordsOf(car.id).filter(r => r.mileage).sort(byDate);
+  let a = null, b = { date: todayISO(), km: currentMileage(car) };
+  if (car.purchaseDate) a = { date: car.purchaseDate, km: num(car.purchaseMileage) };
+  else if (recs.length) a = { date: recs[0].date, km: recs[0].mileage };
+  if (!a) return null;
+  const d = diffDays(a.date, b.date);
+  if (d < 30 || b.km <= a.km) return null;
+  return (b.km - a.km) / d;
+}
+function lastDone(carId, itemId, asOf){
+  return recordsOf(carId, 'maintenance').filter(r => (!asOf || r.date <= asOf) && (r.items||[]).some(i => i.itemId === itemId)).sort(byDate).pop() || null;
+}
+function itemStatus(car, item, asOf, mileageAt){
+  if (!item.applicable) return { state:'na' };
+  if (!num(item.km) && !num(item.months)) return { state:'none' };
+  const last = lastDone(car.id, item.id, asOf);
+  if (!last) return { state:'unknown' };
+  const ref = asOf || todayISO();
+  const cur = mileageAt ?? currentMileage(car);
+  let fr = Infinity, kmLeft = null, daysLeft = null, dueKm = null, dueDate = null;
+  if (num(item.km)) { dueKm = num(last.mileage) + num(item.km); kmLeft = dueKm - cur; fr = Math.min(fr, kmLeft / num(item.km)); }
+  if (num(item.months)) { dueDate = addMonths(last.date, num(item.months)); daysLeft = diffDays(ref, dueDate); fr = Math.min(fr, daysLeft / Math.max(1, diffDays(last.date, dueDate))); }
+  let forecast = null;
+  if (kmLeft != null && kmLeft > 0 && !asOf) { const v = avgKmPerDay(car); if (v) forecast = addDays(ref, Math.round(kmLeft / v)); }
+  if (dueDate && (!forecast || dueDate < forecast) && daysLeft >= 0) forecast = forecast && forecast < dueDate ? forecast : dueDate;
+  const st = fr < 0 ? 'red' : fr < 0.2 ? 'yellow' : 'green';
+  return { state:st, fr, kmLeft, daysLeft, dueKm, dueDate, last, forecast };
+}
+function statusText(s){
+  if (s.state === 'na') return 'не применимо';
+  if (s.state === 'none') return 'без интервала';
+  if (s.state === 'unknown') return 'нет записей';
+  const parts = [];
+  if (s.state === 'red') {
+    if (s.kmLeft != null && s.kmLeft < 0) parts.push(`просрочено на ${fmtKm(-s.kmLeft)}`);
+    if (s.daysLeft != null && s.daysLeft < 0) parts.push(`${s.kmLeft != null && s.kmLeft < 0 ? 'и' : 'просрочено на'} ${-s.daysLeft} дн.`);
+    return parts.join(' ');
+  }
+  if (s.kmLeft != null) parts.push(`через ${fmtKm(s.kmLeft)}`);
+  if (s.daysLeft != null) parts.push(`${s.daysLeft} дн.`);
+  return parts.join(' или ');
+}
+const stateChip = s => { const cls = { red:'red', yellow:'yellow', green:'green' }[s.state] || 'grey'; return `<span class="chip ${cls}">${esc(statusText(s))}</span>`; };
+const rank = { red:3, yellow:2, green:1 };
+function carToStatus(car){
+  let worst = null;
+  car.items.forEach(it => { const s = itemStatus(car, it); if (rank[s.state] && (!worst || rank[s.state] > rank[worst.s.state] || (rank[s.state] === rank[worst.s.state] && s.fr < worst.s.fr))) worst = { it, s }; });
+  return worst;
+}
+
+/* ---- Tires ---- */
+const seasonGroup = s => s && s.startsWith('winter') ? 'winter' : s;
+function expectedSeason(iso){
+  const md = iso.slice(5);
+  return (md >= state.settings.toSummer && md < state.settings.toWinter) ? 'summer' : 'winter';
+}
+function nextSwap(iso){
+  const y = Number(iso.slice(0,4));
+  const cands = [`${y}-${state.settings.toSummer}`, `${y}-${state.settings.toWinter}`, `${y+1}-${state.settings.toSummer}`].filter(d => d > iso).sort();
+  const d = cands[0]; return { date:d, to: d.slice(5) === state.settings.toSummer ? 'summer' : 'winter' };
+}
+function tireStatus(car){
+  const mounted = state.tireSets.find(t => t.carId === car.id && t.mounted);
+  const t = todayISO();
+  if (!mounted) return { state:'unknown', text:'комплект на автомобиле не указан' };
+  if (mounted.season === 'allseason') return { state:'green', text:'всесезонные шины', mounted };
+  const exp = expectedSeason(t);
+  if (seasonGroup(mounted.season) !== exp) return { state:'red', text:`пора ставить ${exp === 'winter' ? 'зимние' : 'летние'} шины`, mounted };
+  const n = nextSwap(t); const days = diffDays(t, n.date);
+  return { state: days <= 14 ? 'yellow' : 'green', text:`смена на ${n.to === 'winter' ? 'зимние' : 'летние'} через ${days} дн. (${fmtDate(n.date)})`, mounted };
+}
+function tireMileage(car){
+  const res = {}; const ch = recordsOf(car.id, 'tire').filter(r => r.tireOn).sort(byDate);
+  ch.forEach((r, i) => { const end = i < ch.length - 1 ? num(ch[i+1].mileage) : currentMileage(car); res[r.tireOn] = (res[r.tireOn] || 0) + Math.max(0, end - num(r.mileage)); });
+  return res;
+}
+function syncMounted(carId){
+  const last = recordsOf(carId, 'tire').filter(r => r.tireOn).sort(byDate).pop();
+  if (!last) return;
+  state.tireSets.forEach(t => { if (t.carId === carId) t.mounted = (t.id === last.tireOn); });
+}
+
+/* ---- Errors ---- */
+function errorHistory(carId){
+  const map = {};
+  recordsOf(carId, 'diagnostics').sort(byDate).forEach(r => (r.errors||[]).forEach((e, idx) => {
+    const k = String(e.code||'').trim().toUpperCase(); if (!k) return;
+    const m = map[k] || (map[k] = { code:k, first:r.date, count:0 });
+    m.count++; m.last = r.date; m.status = e.status; m.desc = e.desc || m.desc; m.system = e.system || m.system; m.recId = r.id; m.idx = idx;
+  }));
+  const repairs = state.records.filter(r => r.carId === carId && (r.type === 'minor' || r.type === 'major') && r.linkedCodes);
+  Object.values(map).forEach(m => { m.fixedBy = repairs.filter(r => r.linkedCodes.toUpperCase().split(/[\s,;]+/).includes(m.code)).sort(byDate).pop(); });
+  return Object.values(map).sort((a,b) => b.last.localeCompare(a.last));
+}
+
+/* ---- Reminders ---- */
+function collectReminders(){
+  const out = []; const t = todayISO();
+  state.cars.forEach(car => {
+    car.items.forEach(it => { const s = itemStatus(car, it); if (s.state === 'red' || s.state === 'yellow') out.push({ car, level:s.state, text:`${it.name}: ${statusText(s)}`, href:`#/car/${car.id}/to` }); });
+    const ts = tireStatus(car); if (ts.state === 'red' || ts.state === 'yellow') out.push({ car, level:ts.state, text:`Шины: ${ts.text}`, href:`#/car/${car.id}/tires` });
+    errorHistory(car.id).filter(e => e.status === 'active').forEach(e => out.push({ car, level:'red', text:`Активная ошибка ${e.code}${e.desc ? ', ' + e.desc : ''}`, href:`#/car/${car.id}/diag` }));
+    state.records.filter(r => r.carId === car.id && (r.type === 'minor' || r.type === 'major')).forEach(r => {
+      if (num(r.warrantyMonths)) { const end = addMonths(r.date, num(r.warrantyMonths)); const d = diffDays(t, end); if (d >= 0 && d <= 30) out.push({ car, level:'yellow', text:`Гарантия на «${r.title || r.description}» закончится через ${d} дн.`, href:`#/car/${car.id}/${r.type}` }); }
+      if (num(r.warrantyKm)) { const left = num(r.mileage) + num(r.warrantyKm) - currentMileage(car); if (left >= 0 && left <= 1000) out.push({ car, level:'yellow', text:`Гарантия на «${r.title || r.description}» закончится через ${fmtKm(left)}`, href:`#/car/${car.id}/${r.type}` }); }
+    });
+  });
+  return out.sort((a,b) => rank[b.level] - rank[a.level]);
+}
+
+/* =================== Icons =================== */
+function icon(name){
+  const s = `stroke="${INK}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"`;
+  const icons = {
+    oil:`<svg viewBox="0 0 80 56" aria-hidden="true"><path d="M6 24h28l6-8h8v6l14-7 5 5-19 12v18a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3z" fill="#FFC93C" ${s}/><rect x="12" y="31" width="22" height="12" rx="2" fill="#E84A3F" ${s} stroke-width="2.5"/><rect x="58" y="28" width="17" height="24" rx="3" fill="#2F6FD6" ${s}/><path d="M58 35h17M58 45h17" ${s} stroke-width="2.5"/></svg>`,
+    scanner:`<svg viewBox="0 0 80 56" aria-hidden="true"><path d="M50 30c12 0 14 10 24 10" fill="none" ${s}/><rect x="70" y="35" width="8" height="10" rx="2" fill="#97A1AE" ${s} stroke-width="2.5"/><rect x="8" y="6" width="42" height="46" rx="7" fill="#F28C28" ${s}/><rect x="14" y="12" width="30" height="18" rx="3" fill="#2F5D4E" ${s} stroke-width="2.5"/><path d="M18 24l6-6 5 4 8-7" fill="none" stroke="#8CF0B0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="21" cy="41" r="4" fill="#fff" ${s} stroke-width="2.5"/><circle cx="37" cy="41" r="4" fill="#fff" ${s} stroke-width="2.5"/></svg>`,
+    toolbox:`<svg viewBox="0 0 80 56" aria-hidden="true"><path d="M28 18v-8h24v8" fill="none" ${s}/><rect x="6" y="18" width="68" height="34" rx="5" fill="#E84A3F" ${s}/><path d="M6 30h68" ${s}/><rect x="34" y="26" width="12" height="9" rx="2" fill="#FFC93C" ${s} stroke-width="2.5"/></svg>`,
+    engine:`<svg viewBox="0 0 80 56" aria-hidden="true"><rect x="14" y="6" width="10" height="10" rx="2" fill="#97A1AE" ${s} stroke-width="2.5"/><rect x="28" y="6" width="10" height="10" rx="2" fill="#97A1AE" ${s} stroke-width="2.5"/><rect x="42" y="6" width="10" height="10" rx="2" fill="#97A1AE" ${s} stroke-width="2.5"/><rect x="8" y="16" width="52" height="32" rx="5" fill="#5E6B7E" ${s}/><circle cx="66" cy="34" r="9" fill="#FFC93C" ${s}/><circle cx="66" cy="34" r="3" fill="${INK}"/><path d="M16 28h36M16 37h36" ${s} stroke-width="2.5"/></svg>`,
+    tires:`<svg viewBox="0 0 80 56" aria-hidden="true"><circle cx="24" cy="30" r="20" fill="#2B2F3A" ${s}/><circle cx="24" cy="30" r="9" fill="#C9CED6" ${s} stroke-width="2.5"/><circle cx="58" cy="32" r="18" fill="#2B2F3A" ${s}/><circle cx="58" cy="32" r="8" fill="#C9CED6" ${s} stroke-width="2.5"/><path d="M10 22l4 2M10 38l4-2M48 20l3 3" stroke="#5B6274" stroke-width="3" stroke-linecap="round"/></svg>`,
+    folder:`<svg viewBox="0 0 80 56" aria-hidden="true"><rect x="20" y="4" width="40" height="34" rx="2" fill="#fff" ${s} stroke-width="2.5"/><path d="M27 13h26M27 20h26M27 27h16" ${s} stroke-width="2.5"/><path d="M6 18h22l5 6h41v26a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3z" fill="#FFC93C" ${s}/></svg>`,
+    book:`<svg viewBox="0 0 80 56" aria-hidden="true"><path d="M14 8h48a3 3 0 0 1 3 3v40H17a5 5 0 0 1-5-5V11a3 3 0 0 1 3-3z" fill="#2F6FD6" ${s}/><path d="M12 45a5 5 0 0 1 5-5h48" fill="none" ${s}/><rect x="28" y="16" width="28" height="12" rx="2" fill="#fff" ${s} stroke-width="2.5"/></svg>`,
+  };
+  return icons[name] || '';
+}
+function silhouette(car){
+  const c = esc(car.bodyColor || '#2F6FD6');
+  const st = `stroke="${INK}" stroke-width="5" stroke-linejoin="round"`;
+  const win = `fill="#BFE6F5" stroke="${INK}" stroke-width="4" stroke-linejoin="round"`;
+  const wheel = (x, r) => `<circle cx="${x}" cy="81" r="${r}" fill="${INK}"/><circle cx="${x}" cy="81" r="${r*0.45}" fill="#D5DAE1" stroke="${INK}" stroke-width="3"/>`;
+  if (car.body === 'sedan') return `<svg class="sil" viewBox="0 0 240 104" role="img" aria-label="Силуэт седана ${esc(carName(car))}"><path d="M12 80V64q2-9 14-11l38-5 26-20q5-4 12-4h56q8 0 13 5l25 19 25 4q9 2 9 12v16z" ${st} fill="${c}"/><path d="M98 32h38v17H76z" ${win}/><path d="M144 32h18q4 0 7 3l15 14h-40z" ${win}/><path d="M140 52v26" stroke="${INK}" stroke-width="3"/><rect x="218" y="60" width="11" height="8" rx="2" fill="#FFE27A" stroke="${INK}" stroke-width="3"/><rect x="12" y="62" width="8" height="7" fill="#E84A3F" stroke="${INK}" stroke-width="3"/>${wheel(62,18)}${wheel(184,18)}</svg>`;
+  return `<svg class="sil" viewBox="0 0 240 104" role="img" aria-label="Силуэт кроссовера ${esc(carName(car))}"><path d="M14 80V58q2-10 14-12l30-2 22-24q4-4 10-4h88q7 0 11 6l17 22 22 4q8 2 8 12v20z" ${st} fill="${c}"/><path d="M88 23h46v21H68z" ${win}/><path d="M142 23h36q4 0 6 3l12 18h-54z" ${win}/><path d="M138 47v31" stroke="${INK}" stroke-width="3"/><path d="M84 12h100" stroke="${INK}" stroke-width="5" stroke-linecap="round"/><rect x="218" y="56" width="11" height="9" rx="2" fill="#FFE27A" stroke="${INK}" stroke-width="3"/><rect x="14" y="58" width="8" height="8" fill="#E84A3F" stroke="${INK}" stroke-width="3"/>${wheel(64,20)}${wheel(188,20)}</svg>`;
+}
+
+/* =================== Routing & road =================== */
+function parseRoute(){
+  const p = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
+  if (!p.length) return { view:'garage' };
+  if (p[0] === 'car' && carById(p[1])) return p[2] && SHELVES.some(s => s.id === p[2]) ? { view:'shelf', car:p[1], shelf:p[2] } : { view:'car', car:p[1] };
+  if (p[0] === 'reminders') return { view:'reminders' };
+  if (p[0] === 'settings') return { view:'settings' };
+  return { view:'garage' };
+}
+function renderRoad(r){
+  const stops = [{ href:'#/', label:'Въезд в гараж', key:'garage', kind:'main' }];
+  state.cars.forEach(c => {
+    stops.push({ href:`#/car/${c.id}`, label:carName(c), key:'car:'+c.id, kind:'car' });
+    if (r.car === c.id) SHELVES.forEach(s => stops.push({ href:`#/car/${c.id}/${s.id}`, label:s.title, key:`shelf:${c.id}:${s.id}`, kind:'branch' }));
+  });
+  const reds = collectReminders().filter(x => x.level === 'red').length;
+  stops.push({ href:'#/reminders', label:'Напоминания', key:'reminders', kind:'service', badge:reds });
+  stops.push({ href:'#/settings', label:'Настройки', key:'settings', kind:'service' });
+  const active = r.view === 'garage' ? 'garage' : r.view === 'car' ? 'car:'+r.car : r.view === 'shelf' ? `shelf:${r.car}:${r.shelf}` : r.view;
+  $('#stops').innerHTML = stops.map(s => `<a class="stop stop-${s.kind} ${s.key === active ? 'active' : ''}" href="${s.href}" ${s.key === active ? 'aria-current="page"' : ''}><span class="sign">${esc(s.label)}${s.badge ? `<span class="badge" aria-label="просрочено: ${s.badge}">${s.badge}</span>` : ''}</span><span class="pole"></span></a>`).join('');
+}
+let markerX = null;
+function moveMarker(){
+  const m = $('#marker'), a = $('#stops .stop.active'); if (!a) return;
+  const x = a.offsetLeft + a.offsetWidth / 2 - m.offsetWidth / 2 + $('#stops').offsetLeft;
+  if (markerX !== null && Math.abs(x - markerX) > 2 && !reduceMotion()) {
+    m.classList.toggle('flip', x < markerX); m.classList.add('driving');
+    clearTimeout(moveMarker.t); moveMarker.t = setTimeout(() => m.classList.remove('driving'), 900);
+  }
+  m.style.transform = `translateX(${x}px)`; markerX = x;
+  const sc = $('.road-scroll'); const target = a.offsetLeft + $('#stops').offsetLeft - sc.clientWidth / 2 + a.offsetWidth / 2;
+  sc.scrollTo({ left: Math.max(0, target), behavior: reduceMotion() ? 'auto' : 'smooth' });
+}
+
+/* =================== Views =================== */
+function shelfCount(car, s){
+  if (s.id === 'tires') return state.tireSets.filter(t => t.carId === car.id).length;
+  if (s.type) return recordsOf(car.id, s.type).length;
+  if (s.id === 'log') return recordsOf(car.id).length;
+  return null;
+}
+function viewGarage(){
+  const rem = collectReminders();
+  const demo = state.records.some(r => r.demo) || state.tireSets.some(t => t.demo);
+  return `<section class="scene">
+    <div class="pegboard">
+      <div class="wall-top">
+        <div>
+          <h1 class="garage-sign"><span class="rivet"></span>Мой гараж<span class="rivet"></span></h1>
+          <p class="garage-lead">Бортовые журналы машин: ТО, ошибки, ремонты и шины. Выберите машину или полку, чтобы открыть записи.</p>
+        </div>
+        <a class="board" href="#/reminders"><h2>Напоминания</h2>
+          ${rem.length ? `<ul>${rem.slice(0,5).map(x => `<li><span class="dot ${x.level}"></span><span><b>${esc(x.car.model)}:</b> ${esc(x.text)}</span></li>`).join('')}</ul>${rem.length > 5 ? `<p style="margin:8px 0 0;font-size:14px">Ещё ${rem.length - 5}. Открыть все</p>` : ''}` : '<p>Всё в порядке: просроченных работ нет.</p>'}
+        </a>
+      </div>
+      ${demo ? `<div class="demo-note"><span>В журналах лежат примеры записей, чтобы было видно, как всё работает.</span><button class="btn small" data-action="remove-demo">Удалить примеры</button></div>` : ''}
+      <div class="bays">${state.cars.map((c, i) => bayHTML(c, i)).join('')}<button class="bay-add" data-action="add-car">Добавить автомобиль</button></div>
+    </div>
+  </section>`;
+}
+function bayHTML(car, i){
+  const w = carToStatus(car);
+  const lamp = w ? w.s.state : 'unknown';
+  const SHORT = { oil:'Масло', air:'Воздушный фильтр', cabin:'Салонный фильтр', fuel:'Топливный фильтр', plugs:'Свечи', brakefluid:'Тормозная жидкость' };
+  const lampText = w ? `${SHORT[w.it.id] || w.it.name}: ${statusText(w.s)}` : 'Нет данных о ТО';
+  return `<article class="bay">
+    <div class="bay-wall">
+      <div class="lamp lamp-${lamp}" role="img" aria-label="Индикатор ТО: ${esc(lampText)}"><span class="cord"></span><span class="shade"></span><span class="bulb"></span></div>
+      <p class="lamp-text">${esc(lampText)}</p>
+      <a class="polaroid" href="#/car/${car.id}"><div class="ph">${car.photo ? `<img src="${car.photo}" alt="Фото ${esc(carName(car))}">` : '<span>Фото пока нет. Добавьте его в карточке машины.</span>'}</div><figcaption>${esc(carName(car))}, ${esc(car.year)}</figcaption></a>
+    </div>
+    <div class="bay-floor">
+      <span class="bay-num" aria-hidden="true">${i + 1}</span>
+      <a class="car-link" href="#/car/${car.id}" aria-label="Открыть ${esc(carName(car))}">${silhouette(car)}</a>
+      <span class="plate">${esc(car.plate || 'номер не указан')}</span>
+      <div class="mini-rack">${SHELVES.filter(s => s.id !== 'log').map(s => { const n = shelfCount(car, s); return `<a class="mini-shelf" href="#/car/${car.id}/${s.id}">${icon(s.icon)}<span>${s.title}${n != null ? ` <b>${n}</b>` : ''}</span></a>`; }).join('')}</div>
+    </div>
+  </article>`;
+}
+function passportHTML(car){
+  return `<article class="clip"><h2>Паспорт автомобиля</h2>
+    <div class="passport-top">
+      <div>
+        <figure class="polaroid" style="cursor:${car.photo?'zoom-in':'pointer'}" ${car.photo ? `data-action="view-photo" data-src="main"` : 'data-action="edit-car"'} data-id="${car.id}"><div class="ph">${car.photo ? `<img src="${car.photo}" alt="Фото ${esc(carName(car))}">` : '<span>Добавить фото</span>'}</div><figcaption>${esc(car.plate || carName(car))}</figcaption></figure>
+        ${car.photos && car.photos.length ? `<div class="thumbs">${car.photos.map((p, i) => `<img src="${p}" alt="Дополнительное фото ${i+1}" data-action="view-photo" data-id="${car.id}" data-src="${i}">`).join('')}</div>` : ''}
+      </div>
+      <div>
+        <dl class="spec">
+          <dt>Год</dt><dd>${esc(car.year)}</dd>
+          <dt>Двигатель</dt><dd>${esc(car.engine || '—')}</dd>
+          <dt>Коробка</dt><dd>${esc(car.transmission || '—')}</dd>
+          <dt>Привод</dt><dd>${esc(car.drive || '—')}</dd>
+          ${car.trim ? `<dt>Комплектация</dt><dd>${esc(car.trim)}</dd>` : ''}
+          <dt>VIN</dt><dd>${esc(car.vin || '—')}</dd>
+          <dt>Госномер</dt><dd>${esc(car.plate || '—')}</dd>
+          <dt>Цвет</dt><dd>${esc(car.colorName || '—')}</dd>
+          ${car.sts ? `<dt>СТС / ПТС</dt><dd>${esc(car.sts)}</dd>` : ''}
+          <dt>Куплен</dt><dd>${fmtDate(car.purchaseDate)}${car.purchaseDate ? `, ${fmtKm(car.purchaseMileage)}` : ''}</dd>
+          <dt>Пробег</dt><dd><b>${fmtKm(currentMileage(car))}</b></dd>
+        </dl>
+      </div>
+    </div>
+    ${car.description ? `<p class="descr">${esc(car.description)}</p>` : ''}
+    <div class="actions">
+      <button class="btn" data-action="update-mileage" data-id="${car.id}">Обновить пробег</button>
+      <button class="btn ghost" data-action="edit-car" data-id="${car.id}">Изменить карточку</button>
+      <button class="btn ghost" data-action="regs" data-id="${car.id}">Регламент ТО</button>
+      <button class="btn ghost danger" data-action="delete-car" data-id="${car.id}">Удалить</button>
+    </div>
+  </article>`;
+}
+function rackHTML(car, activeShelf){
+  return `<nav class="rack" aria-label="Полки автомобиля"><div class="rack-title">Стеллаж ${esc(car.model)}</div>${SHELVES.map(s => { const n = shelfCount(car, s); return `<a class="shelf ${s.id === activeShelf ? 'active' : ''}" href="#/car/${car.id}/${s.id}">${icon(s.icon)}<span class="st"><b>${s.title}</b><small>${n == null ? 'PDF за период' : s.id === 'tires' ? `комплектов: ${n}` : `записей: ${n}`}</small></span></a>`; }).join('')}</nav>`;
+}
+function toPanelHTML(car){
+  const items = car.items.filter(i => i.group === 'mandatory' || num(i.km) || num(i.months));
+  return `<article class="clip"><h2>Состояние ТО</h2><ul class="status-list">${items.map(it => {
+    const s = itemStatus(car, it);
+    const fill = s.fr != null && isFinite(s.fr) ? Math.max(0, Math.min(1, 1 - s.fr)) : 0;
+    const col = { red:'var(--red)', yellow:'var(--yellow)', green:'var(--green)' }[s.state] || 'transparent';
+    const meta = s.last ? `Последняя: ${fmtDate(s.last.date)}, ${fmtKm(s.last.mileage)}. Следующая: ${s.dueKm ? fmtKm(s.dueKm) : ''}${s.dueKm && s.dueDate ? ' или ' : ''}${s.dueDate ? fmtDate(s.dueDate) : ''}${s.forecast && s.state !== 'red' ? `, ориентировочно ${fmtDate(s.forecast)}` : ''}` : (s.state === 'unknown' ? 'Добавьте запись ТО с этой работой, чтобы включить напоминание' : '');
+    return `<li><span class="nm">${esc(it.name)}</span>${stateChip(s)}${meta ? `<span class="meta">${meta}</span>` : ''}${rank[s.state] ? `<span class="bar"><i style="width:${fill*100}%;background:${col}"></i></span>` : ''}</li>`;
+  }).join('')}</ul>
+  <div class="actions"><button class="btn small ghost" data-action="regs" data-id="${car.id}">Настроить интервалы</button></div></article>`;
+}
+function viewCar(id){
+  const car = carById(id); const ts = tireStatus(car);
+  return `<section class="page">
+    <div class="page-head"><h1>${esc(carName(car))}, ${esc(car.year)}</h1><p class="sub">Пробег ${fmtKm(currentMileage(car))}. Шины: ${esc(ts.text)}.</p></div>
+    <div class="car-grid">
+      <div>${passportHTML(car)}${toPanelHTML(car)}</div>
+      <div>${rackHTML(car)}</div>
+    </div>
+  </section>`;
+}
+function emptyHTML(text, action, type, carId){
+  return `<div class="empty">${icon('toolbox')}<p>${text}</p>${action ? `<button class="btn" data-action="${action}" data-type="${type||''}" data-id="${carId}">Добавить запись</button>` : ''}</div>`;
+}
+function attachThumbs(r){
+  return r.attachments && r.attachments.length ? `<div class="thumbs">${r.attachments.map((a, i) => `<img src="${a}" alt="Вложение ${i+1}" data-action="view-attach" data-id="${r.id}" data-src="${i}">`).join('')}</div>` : '';
+}
+function recordHTML(r, showType){
+  const c = costsOf(r); const car = carById(r.carId);
+  let title = '', body = '';
+  if (r.type === 'maintenance') {
+    title = 'Техническое обслуживание';
+    body = `<ul>${(r.items||[]).map(i => `<li>${esc(i.name)}${i.partBrand ? `, ${esc(i.partBrand)}` : ''}${i.partNumber ? ` (${esc(i.partNumber)})` : ''}</li>`).join('')}</ul>`;
+  } else if (r.type === 'diagnostics') {
+    title = `Диагностика: ${esc(r.method || '')}`;
+    body = (r.errors||[]).length ? `<ul>${r.errors.map(e => `<li><b style="display:inline">${esc(e.code)}</b> ${esc(e.desc)} <span class="chip ${e.status === 'active' ? 'red' : e.status === 'resolved' ? 'green' : 'grey'}">${ERR_STATUS[e.status] || ''}</span></li>`).join('')}</ul>` : '<p>Ошибок не найдено</p>';
+  } else if (r.type === 'tire') {
+    const on = state.tireSets.find(t => t.id === r.tireOn), off = state.tireSets.find(t => t.id === r.tireOff);
+    title = 'Смена шин';
+    body = `<p>Установлены: ${on ? esc(`${on.brand} ${on.model} (${SEASONS[on.season]})`) : '—'}${off ? `<br>Сняты: ${esc(`${off.brand} ${off.model}`)}` : ''}${r.balance ? '<br>С балансировкой' : ''}</p>`;
+  } else {
+    title = esc(r.title || TYPES[r.type]);
+    body = `${r.unit ? `<p>Узел: ${esc(r.unit)}${r.orderNo ? `, заказ-наряд ${esc(r.orderNo)}` : ''}${r.downFrom ? `, простой ${fmtDate(r.downFrom)}–${fmtDate(r.downTo)}` : ''}</p>` : ''}${r.partsDesc ? `<p>Запчасти: ${esc(r.partsDesc)}</p>` : ''}${num(r.warrantyMonths) || num(r.warrantyKm) ? `<p>Гарантия: ${num(r.warrantyMonths) ? r.warrantyMonths + ' мес.' : ''}${num(r.warrantyMonths) && num(r.warrantyKm) ? ' или ' : ''}${num(r.warrantyKm) ? fmtKm(r.warrantyKm) : ''}</p>` : ''}${r.linkedCodes ? `<p>Связанные ошибки: ${esc(r.linkedCodes)}</p>` : ''}`;
+    if (r.type !== 'major' && r.type !== 'minor') body = '';
+  }
+  const desc = r.type === 'minor' || r.type === 'major' ? (r.description ? `<p>${esc(r.description)}</p>` : '') : (r.description ? `<p>${esc(r.description)}</p>` : '');
+  return `<li class="rec">
+    <div class="when">${fmtDate(r.date)}<small>${fmtKm(r.mileage)}</small>${showType ? `<small>${TYPES[r.type]}</small>` : ''}</div>
+    <div class="what"><b>${title}</b>${r.place ? `<p>${esc(r.place)}</p>` : ''}${body}${desc}${attachThumbs(r)}</div>
+    <div class="cost">${fmtMoney(c.total)}${c.total ? `<small style="display:block;font-weight:400;color:var(--muted);font-size:12px">запчасти ${grp(c.parts)}, работа ${grp(c.labor)}</small>` : ''}
+      <div class="actions"><button class="btn small ghost" data-action="edit-record" data-id="${r.id}" aria-label="Изменить запись от ${fmtDate(r.date)}">Изменить</button><button class="btn small danger" data-action="delete-record" data-id="${r.id}" aria-label="Удалить запись от ${fmtDate(r.date)}">Удалить</button></div>
+    </div>
+  </li>`;
+}
+function recordsBlock(car, type, label){
+  const recs = recordsOf(car.id, type).sort(byDate).reverse();
+  const total = recs.reduce((s, r) => s + costsOf(r).total, 0);
+  return `<div class="toolbar"><button class="btn" data-action="add-record" data-type="${type}" data-id="${car.id}">Добавить запись</button><span class="sum">Записей: ${recs.length}. Расходы: ${fmtMoney(total)}</span></div>
+    ${recs.length ? `<ul class="recs">${recs.map(r => recordHTML(r)).join('')}</ul>` : emptyHTML(`На этой полке пока пусто. Добавьте первую запись: ${label}.`)}`;
+}
+function viewShelf(id, shelfId){
+  const car = carById(id); const shelf = SHELVES.find(s => s.id === shelfId);
+  let content = '';
+  if (shelfId === 'to') content = `<article class="clip"><h2>Записи ТО</h2>${recordsBlock(car, 'maintenance', 'дата, пробег и выполненные работы')}</article>${toPanelHTML(car)}`;
+  else if (shelfId === 'diag') content = `<article class="clip"><h2>Диагностика</h2>${recordsBlock(car, 'diagnostics', 'коды ошибок и способ диагностики')}</article>${errorsPanel(car)}`;
+  else if (shelfId === 'minor') content = `<article class="clip"><h2>Мелкие ремонты</h2>${recordsBlock(car, 'minor', 'неисправность и что сделано')}</article>`;
+  else if (shelfId === 'major') content = `<article class="clip"><h2>Крупные ремонты</h2>${recordsBlock(car, 'major', 'узел, работы и простой')}</article>`;
+  else if (shelfId === 'tires') content = tiresView(car);
+  else if (shelfId === 'report') content = reportView(car);
+  else if (shelfId === 'log') content = logView(car);
+  return `<section class="page">
+    <div class="page-head"><h1>${shelf.title}</h1><p class="sub">${esc(carName(car))}, ${esc(car.year)}. Пробег ${fmtKm(currentMileage(car))}</p></div>
+    <div class="car-grid"><div>${content}</div><div>${rackHTML(car, shelfId)}</div></div>
+  </section>`;
+}
+function errorsPanel(car){
+  const h = errorHistory(car.id);
+  return `<article class="clip"><h2>История ошибок</h2>${h.length ? `<div class="tscroll"><table class="t"><thead><tr><th>Код</th><th>Описание</th><th>Впервые</th><th>Последний раз</th><th>Повторы</th><th>Статус</th></tr></thead><tbody>${h.map(e => `<tr><td><b>${esc(e.code)}</b><br><small>${esc(e.system || '')}</small></td><td>${esc(e.desc || '')}${e.fixedBy ? `<br><small>Устранена ремонтом от ${fmtDate(e.fixedBy.date)}</small>` : ''}</td><td>${fmtDate(e.first)}</td><td>${fmtDate(e.last)}</td><td>${e.count}</td><td><span class="chip ${e.status === 'active' ? 'red' : e.status === 'resolved' ? 'green' : 'grey'}">${ERR_STATUS[e.status]}</span>${e.status === 'active' ? `<br><button class="btn small ghost" style="margin-top:6px" data-action="resolve-error" data-id="${e.recId}" data-idx="${e.idx}">Отметить устранённой</button>` : ''}</td></tr>`).join('')}</tbody></table></div>` : '<p class="hint">Ошибок пока не было. Коды появятся здесь после записи диагностики.</p>'}</article>`;
+}
+function tireSVG(season){
+  const col = season === 'summer' ? '#FFC93C' : season === 'allseason' ? '#35B26B' : '#7CC6F0';
+  return `<svg viewBox="0 0 70 70" aria-hidden="true"><circle cx="35" cy="35" r="31" fill="#2B2F3A" stroke="${INK}" stroke-width="3"/><circle cx="35" cy="35" r="15" fill="${col}" stroke="${INK}" stroke-width="3"/><circle cx="35" cy="35" r="4" fill="${INK}"/></svg>`;
+}
+function tiresView(car){
+  const sets = state.tireSets.filter(t => t.carId === car.id);
+  const km = tireMileage(car); const ts = tireStatus(car);
+  return `<article class="clip"><h2>Комплекты шин</h2>
+    <p><span class="chip ${ {red:'red',yellow:'yellow',green:'green'}[ts.state] || 'grey'}">${esc(ts.text)}</span></p>
+    <div class="toolbar"><button class="btn" data-action="add-tireset" data-id="${car.id}">Добавить комплект</button></div>
+    ${sets.length ? sets.map(t => { const last = (t.tread||[]).slice().sort(byDate).pop(); return `<div class="tire-card">${tireSVG(t.season)}<div>
+      <h3>${esc(t.brand)} ${esc(t.model)} ${t.mounted ? '<span class="chip blue">на машине</span>' : ''}</h3>
+      <dl class="spec"><dt>Сезон</dt><dd>${SEASONS[t.season]}</dd><dt>Размер</dt><dd>${esc(t.size)} ${esc(t.index || '')}</dd><dt>Год (DOT)</dt><dd>${esc(t.dot || '—')}</dd><dt>Диски</dt><dd>${esc(t.rimType || '—')} ${esc(t.rimSize || '')}</dd><dt>Пробег на комплекте</dt><dd>${fmtKm(km[t.id] || 0)}</dd><dt>Протектор</dt><dd>${last ? `${String(last.mm).replace('.', ',')} мм на ${fmtDate(last.date)}` : '—'}</dd><dt>Хранение</dt><dd>${esc(t.storage || '—')}</dd>${num(t.cost) ? `<dt>Стоимость</dt><dd>${fmtMoney(t.cost)}</dd>` : ''}</dl>
+      ${(t.tread||[]).length > 1 ? `<div class="tread">${t.tread.slice().sort(byDate).map(x => `<span>${fmtDate(x.date)}: ${String(x.mm).replace('.', ',')} мм</span>`).join('')}</div>` : ''}
+      <div class="actions"><button class="btn small" data-action="add-tread" data-id="${t.id}">Замерить протектор</button><button class="btn small ghost" data-action="edit-tireset" data-id="${t.id}">Изменить</button><button class="btn small danger" data-action="delete-tireset" data-id="${t.id}">Удалить</button></div>
+    </div></div>`; }).join('') : '<p class="hint">Добавьте летний и зимний комплекты, чтобы вести график смены.</p>'}
+  </article>
+  <article class="clip"><h2>График смены резины</h2>
+    <p class="hint">Сезонные даты: на летние ${fmtDate('2000-' + state.settings.toSummer).slice(0,5)}, на зимние ${fmtDate('2000-' + state.settings.toWinter).slice(0,5)}. Даты меняются в настройках.</p>
+    ${recordsBlock(car, 'tire', 'дата, пробег и какой комплект поставили')}
+  </article>`;
+}
+function reportView(car){
+  const t = todayISO();
+  return `<article class="clip"><h2>Отчёт за период</h2>
+    <form id="reportForm" data-car="${car.id}" onsubmit="return false">
+      <div class="grid2"><label class="f">С даты<input type="date" name="from" value="${t.slice(0,4)}-01-01" required></label><label class="f">По дату<input type="date" name="to" value="${t}" required></label></div>
+      <div class="actions" style="margin-top:10px">
+        ${[['month','Этот месяц'],['prevmonth','Прошлый месяц'],['quarter','Квартал'],['year','Этот год'],['prevyear','Прошлый год'],['all','Весь период']].map(([k,l]) => `<button type="button" class="btn small ghost" data-action="report-preset" data-preset="${k}">${l}</button>`).join('')}
+      </div>
+      <fieldset style="margin-top:14px"><legend>Что включить</legend><div class="grid2">
+        ${Object.entries(TYPES).map(([k,l]) => `<label class="check"><input type="checkbox" name="sec" value="${k}" checked> ${l}</label>`).join('')}
+        <label class="check"><input type="checkbox" name="photos"> Миниатюры фото и чеков</label>
+      </div></fieldset>
+      <div id="reportSummary" class="descr" style="margin-top:14px"></div>
+      <div class="actions"><button type="button" class="btn" data-action="report-generate">Скачать PDF</button></div>
+    </form>
+  </article>`;
+}
+function logView(car){
+  return `<article class="clip"><h2>Журнал целиком</h2>
+    <form id="logForm" data-car="${car.id}" onsubmit="return false" class="grid2" style="margin-bottom:14px">
+      <label class="f">Тип записи<select name="type"><option value="">Все записи</option>${Object.entries(TYPES).map(([k,l]) => `<option value="${k}">${l}</option>`).join('')}</select></label>
+      <label class="f">Поиск<input name="q" type="search" placeholder="Например, масло или P0171"></label>
+      <label class="f">С даты<input type="date" name="from"></label>
+      <label class="f">По дату<input type="date" name="to"></label>
+    </form>
+    <div id="logList"></div>
+  </article>`;
+}
+function renderLogList(){
+  const f = $('#logForm'); if (!f) return;
+  const fd = new FormData(f); const car = carById(f.dataset.car);
+  const q = (fd.get('q') || '').toLowerCase().trim();
+  const recs = recordsOf(car.id).filter(r => (!fd.get('type') || r.type === fd.get('type')) && (!fd.get('from') || r.date >= fd.get('from')) && (!fd.get('to') || r.date <= fd.get('to')) && (!q || [r.title, r.description, r.place, r.partsDesc, r.method, ...(r.items||[]).map(i => i.name + ' ' + i.partBrand), ...(r.errors||[]).map(e => e.code + ' ' + e.desc)].join(' ').toLowerCase().includes(q))).sort(byDate).reverse();
+  const total = recs.reduce((s, r) => s + costsOf(r).total, 0);
+  $('#logList').innerHTML = `<p class="hint">Найдено записей: ${recs.length}. Сумма: ${fmtMoney(total)}</p>` + (recs.length ? `<ul class="recs">${recs.map(r => recordHTML(r, true)).join('')}</ul>` : '<p class="empty">По этим условиям записей нет. Измените фильтры.</p>');
+}
+function viewReminders(){
+  const rem = collectReminders();
+  return `<section class="page"><div class="page-head"><h1>Напоминания</h1><p class="sub">Сводка по всем машинам: ТО по пробегу и дате, сезонная смена шин, гарантии и активные ошибки.</p></div>
+    <div class="car-grid">
+      ${state.cars.map(car => { const list = rem.filter(r => r.car === car); return `<article class="clip"><h2>${esc(carName(car))}</h2>${list.length ? `<ul class="status-list">${list.map(x => `<li><a href="${x.href}" style="text-decoration:none"><span class="dot ${x.level}" style="display:inline-block;margin-right:8px"></span>${esc(x.text)}</a></li>`).join('')}</ul>` : '<p>Просроченных и ближайших работ нет.</p>'}</article>`; }).join('')}
+      <article class="clip"><h2>Уведомления браузера</h2><p class="hint">Сайт покажет системное уведомление о просроченных работах, когда вы его откроете. Это дополнение: основная сводка всегда здесь и на доске в гараже.</p><div class="actions"><button class="btn ghost" data-action="notify-enable">Включить уведомления</button></div></article>
+    </div></section>`;
+}
+function viewSettings(){
+  const s = state.settings;
+  return `<section class="page"><div class="page-head"><h1>Настройки</h1></div>
+    <div class="car-grid">
+      <article class="clip"><h2>Сезонная смена шин</h2>
+        <form id="seasonForm" onsubmit="return false" class="grid2">
+          <label class="f">На летние, день и месяц<input type="date" name="summer" value="2026-${s.toSummer}"></label>
+          <label class="f">На зимние, день и месяц<input type="date" name="winter" value="2026-${s.toWinter}"></label>
+        </form>
+        <p class="hint" style="margin-top:8px">Год не важен, учитываются только день и месяц.</p>
+        <div class="actions"><button class="btn" data-action="save-season">Сохранить даты</button></div>
+      </article>
+      <article class="clip"><h2>Резервная копия</h2>
+        <p>Все журналы хранятся только в этом браузере. Если очистить данные браузера, записи пропадут. Сохраняйте копию в файл хотя бы раз в месяц.</p>
+        <p class="hint">Последняя копия: ${s.lastBackupAt ? fmtDate(s.lastBackupAt) : 'ещё не делали'}.${memoryMode ? ' Сейчас браузер не даёт сохранять данные: после закрытия вкладки они пропадут.' : ''}</p>
+        <p class="hint" id="storageInfo"></p>
+        <div class="actions"><button class="btn" data-action="export">Сохранить копию в файл</button><button class="btn ghost" data-action="import">Загрузить из файла</button></div>
+      </article>
+      <article class="clip"><h2>Данные</h2>
+        <div class="actions"><button class="btn ghost" data-action="remove-demo">Удалить примеры записей</button><button class="btn danger" data-action="reset">Стереть всё и начать заново</button></div>
+      </article>
+    </div></section>`;
+}
+
+/* =================== Render =================== */
+function render(){
+  const r = parseRoute();
+  renderRoad(r);
+  const app = $('#app');
+  app.innerHTML = r.view === 'garage' ? viewGarage() : r.view === 'car' ? viewCar(r.car) : r.view === 'shelf' ? viewShelf(r.car, r.shelf) : r.view === 'reminders' ? viewReminders() : viewSettings();
+  document.title = (r.car ? carName(carById(r.car)) + ' — ' : '') + 'Мой гараж';
+  if ($('#reportForm')) updateReportSummary();
+  if ($('#logForm')) renderLogList();
+  if ($('#storageInfo') && navigator.storage && navigator.storage.estimate) navigator.storage.estimate().then(e => { const el = $('#storageInfo'); if (el) el.textContent = `Занято в браузере: ${(e.usage/1048576).toFixed(1)} МБ.`; }).catch(() => {});
+  requestAnimationFrame(moveMarker);
+}
+let lastRoute = '';
+window.addEventListener('hashchange', () => { render(); if (location.hash !== lastRoute) { window.scrollTo({ top:0, behavior: reduceMotion() ? 'auto' : 'smooth' }); lastRoute = location.hash; } });
+window.addEventListener('resize', () => requestAnimationFrame(moveMarker));
+function commit(msg){ save(); render(); if (msg) toast(msg); }
+
+/* =================== Toasts =================== */
+function toast(text, kind, action){
+  const el = document.createElement('div'); el.className = 'toast' + (kind ? ' ' + kind : '');
+  el.innerHTML = `<span>${text}</span><button aria-label="Закрыть">×</button>`;
+  el.querySelector('button').onclick = () => el.remove();
+  if (action) { const b = document.createElement('a'); b.className = 'btn small'; b.textContent = action.label; b.href = action.href; b.onclick = () => el.remove(); el.querySelector('span').after(b); }
+  $('#toasts').append(el); setTimeout(() => el.remove(), kind === 'warn' ? 12000 : 4000);
+}
+
+/* =================== Modal =================== */
+let modalSubmit = null, modalCtx = {};
+function openModal(title, body, onSubmit, submitLabel = 'Сохранить'){
+  $('#mtitle').textContent = title; $('#mbody').innerHTML = body; $('#msubmit').textContent = submitLabel;
+  modalSubmit = onSubmit; const d = $('#modal'); d.showModal();
+  const first = $('#mbody').querySelector('input:not([type=checkbox]),select,textarea'); if (first) first.focus();
+}
+function closeModal(){ $('#modal').close(); modalCtx = {}; }
+$('#mform').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = e.target; const bad = [...f.querySelectorAll('[required]')].find(i => !i.value.trim());
+  if (bad) { bad.focus(); toast(`Заполните поле «${bad.closest('label')?.firstChild?.textContent?.trim() || 'обязательное'}».`, 'warn'); return; }
+  if (modalSubmit && (await modalSubmit(new FormData(f), f)) !== false) closeModal();
+});
+$('#mbody').addEventListener('change', e => { const w = e.target.closest('.work'); if (w && e.target.type === 'checkbox') w.classList.toggle('on', e.target.checked); });
+
+function compressImage(file, max = 1600, q = 0.82){
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => { const img = new Image(); img.onload = () => { const k = Math.min(1, max / Math.max(img.width, img.height)); const w = Math.round(img.width*k), h = Math.round(img.height*k); const c = document.createElement('canvas'); c.width = w; c.height = h; const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0,0,w,h); ctx.drawImage(img,0,0,w,h); res(c.toDataURL('image/jpeg', q)); }; img.onerror = () => rej(new Error('img')); img.src = fr.result; };
+    fr.onerror = () => rej(fr.error); fr.readAsDataURL(file);
+  });
+}
+function thumbsEditor(key){
+  const arr = modalCtx[key] || [];
+  return arr.map((src, i) => `<span class="thumb-wrap"><img class="thumb" src="${src}" alt="Фото ${i+1}"><button type="button" data-action="remove-thumb" data-key="${key}" data-idx="${i}" aria-label="Убрать фото ${i+1}">×</button></span>`).join('');
+}
+function bindFileInput(name, key, max, limit){
+  const inp = $(`#mbody input[name="${name}"]`); if (!inp) return;
+  inp.addEventListener('change', async () => {
+    const files = [...inp.files];
+    for (const f of files) { if ((modalCtx[key]||[]).length >= limit) { toast(`Можно добавить не больше ${limit} фото.`, 'warn'); break; } try { modalCtx[key] = [...(modalCtx[key]||[]), await compressImage(f, max, max > 1200 ? 0.82 : 0.72)]; } catch (e) { toast('Не удалось прочитать файл. Выберите изображение JPG или PNG.', 'warn'); } }
+    inp.value = ''; $(`#th_${key}`).innerHTML = thumbsEditor(key);
+  });
+}
+
+/* ---- Car form ---- */
+function carForm(car){
+  car = car || { make:'', model:'', year:'', body:'suv', bodyColor:'#E84A3F', photos:[] };
+  modalCtx.main = car.photo ? [car.photo] : []; modalCtx.extra = [...(car.photos||[])];
+  const v = k => esc(car[k] ?? '');
+  return `<div class="grid3">
+    <label class="f">Марка<input name="make" value="${v('make')}" required></label>
+    <label class="f">Модель<input name="model" value="${v('model')}" required></label>
+    <label class="f">Год выпуска<input name="year" type="number" min="1950" max="2100" value="${v('year')}" required></label>
+    <label class="f">Комплектация<input name="trim" value="${v('trim')}"></label>
+    <label class="f">Двигатель<input name="engine" value="${v('engine')}" placeholder="2.0, 150 л.с., бензин"></label>
+    <label class="f">Коробка передач<input name="transmission" value="${v('transmission')}"></label>
+    <label class="f">Привод<input name="drive" value="${v('drive')}"></label>
+    <label class="f">VIN<input name="vin" value="${v('vin')}" maxlength="17" style="text-transform:uppercase"></label>
+    <label class="f">Госномер<input name="plate" value="${v('plate')}" placeholder="А123ВС 777"></label>
+    <label class="f">Цвет кузова<input name="colorName" value="${v('colorName')}"></label>
+    <label class="f">СТС / ПТС<input name="sts" value="${v('sts')}"></label>
+    <label class="f">Тип кузова<select name="body"><option value="suv" ${car.body !== 'sedan' ? 'selected' : ''}>Кроссовер / внедорожник</option><option value="sedan" ${car.body === 'sedan' ? 'selected' : ''}>Седан</option></select></label>
+    <label class="f">Дата покупки<input name="purchaseDate" type="date" value="${v('purchaseDate')}"></label>
+    <label class="f">Пробег при покупке, км<input name="purchaseMileage" type="number" min="0" value="${v('purchaseMileage')}"></label>
+    <label class="f">Текущий пробег, км<input name="mileage" type="number" min="0" value="${v('mileage')}"></label>
+    <label class="f">Цвет силуэта в гараже<input name="bodyColor" type="color" value="${v('bodyColor') || '#E84A3F'}"></label>
+  </div>
+  <label class="f">Отличительные признаки<textarea name="description" placeholder="Сколы, наклейки, тюнинг, особенности">${v('description')}</textarea></label>
+  <div class="grid2">
+    <div><label class="f">Основное фото<input type="file" name="mainPhoto" accept="image/*"></label><div class="thumbs" id="th_main">${thumbsEditor('main')}</div></div>
+    <div><label class="f">Дополнительные фото, до 5<input type="file" name="extraPhotos" accept="image/*" multiple></label><div class="thumbs" id="th_extra">${thumbsEditor('extra')}</div></div>
+  </div>`;
+}
+function editCar(id){
+  const car = id ? carById(id) : null;
+  openModal(car ? 'Карточка автомобиля' : 'Новый автомобиль', carForm(car), fd => {
+    const data = Object.fromEntries(['make','model','trim','engine','transmission','drive','vin','plate','colorName','sts','body','purchaseDate','description','bodyColor'].map(k => [k, (fd.get(k)||'').trim()]));
+    data.vin = data.vin.toUpperCase(); data.year = num(fd.get('year')); data.purchaseMileage = num(fd.get('purchaseMileage')); data.mileage = num(fd.get('mileage'));
+    data.photo = modalCtx.main[0] || ''; data.photos = modalCtx.extra.slice(0,5);
+    if (car) Object.assign(car, data); else { const nc = { id:uid(), items:defaultItems(), ...data }; state.cars.push(nc); location.hash = `#/car/${nc.id}`; }
+    commit(car ? 'Карточка сохранена' : 'Автомобиль добавлен в гараж');
+  });
+  bindFileInput('mainPhoto', 'main', 1600, 1); bindFileInput('extraPhotos', 'extra', 1600, 5);
+  const mp = $('#mbody input[name="mainPhoto"]'); mp.addEventListener('click', () => { modalCtx.main = []; $('#th_main').innerHTML = ''; });
+}
+
+/* ---- Record forms ---- */
+function baseFields(r, car){
+  return `<div class="grid3">
+    <label class="f">Дата<input type="date" name="date" value="${esc(r.date || todayISO())}" required></label>
+    <label class="f">Пробег, км<input type="number" name="mileage" min="0" value="${esc(r.mileage ?? currentMileage(car))}" required></label>
+    <label class="f">Где делали<input name="place" value="${esc(r.place || '')}" list="placeList" placeholder="СТО, дилер или сами"></label>
+  </div><datalist id="placeList">${[...new Set(state.records.map(x => x.place).filter(Boolean))].map(p => `<option value="${esc(p)}">`).join('')}<option value="Самостоятельно"></datalist>`;
+}
+function workRow(it, sel, st){
+  return `<div class="work ${sel ? 'on' : ''}">
+    <label class="work-check"><input type="checkbox" name="w_${it.id}" ${sel ? 'checked' : ''}><span>${esc(it.name)}</span>${st && rank[st.state] ? stateChip(st) : ''}</label>
+    <div class="work-details">
+      <input name="wb_${it.id}" aria-label="Бренд запчасти" placeholder="Бренд" value="${esc(sel?.partBrand || '')}">
+      <input name="wn_${it.id}" aria-label="Артикул" placeholder="Артикул" value="${esc(sel?.partNumber || '')}">
+      <input name="wp_${it.id}" aria-label="Стоимость запчастей" type="number" min="0" placeholder="Запчасти, ₽" value="${sel && num(sel.partCost) ? sel.partCost : ''}">
+      <input name="wl_${it.id}" aria-label="Стоимость работы" type="number" min="0" placeholder="Работа, ₽" value="${sel && num(sel.laborCost) ? sel.laborCost : ''}">
+    </div></div>`;
+}
+function custRow(c = {}){
+  return `<div class="row cust"><input name="cn" aria-label="Название работы" placeholder="Своя работа" value="${esc(c.name || '')}"><input name="cp" type="number" min="0" aria-label="Запчасти" placeholder="Запчасти, ₽" value="${num(c.partCost) || ''}"><input name="cl" type="number" min="0" aria-label="Работа" placeholder="Работа, ₽" value="${num(c.laborCost) || ''}"><button type="button" class="btn small danger icon" data-action="remove-row" aria-label="Убрать строку">×</button></div>`;
+}
+function errRow(e = {}){
+  return `<div class="row err"><input name="ec" aria-label="Код ошибки" placeholder="P0301" value="${esc(e.code || '')}" style="text-transform:uppercase"><input name="ed" aria-label="Расшифровка" placeholder="Расшифровка" value="${esc(e.desc || '')}"><select name="es" aria-label="Система">${SYSTEMS.map(s => `<option ${e.system === s ? 'selected' : ''}>${s}</option>`).join('')}</select><select name="et" aria-label="Статус">${Object.entries(ERR_STATUS).map(([k,l]) => `<option value="${k}" ${e.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select><button type="button" class="btn small danger icon" data-action="remove-row" aria-label="Убрать ошибку">×</button></div>`;
+}
+function attachField(){
+  return `<div><label class="f">Фото, чеки, заказ-наряды (до 6)<input type="file" name="attach" accept="image/*" multiple></label><div class="thumbs" id="th_att">${thumbsEditor('att')}</div></div>`;
+}
+function recordForm(car, type, r){
+  r = r || {};
+  modalCtx.att = [...(r.attachments || [])];
+  let html = baseFields(r, car);
+  if (type === 'maintenance') {
+    const sel = id => (r.items || []).find(i => i.itemId === id);
+    const isNew = !r.id;
+    const rows = g => car.items.filter(i => i.group === g && i.applicable).map(it => { const st = itemStatus(car, it); const pre = sel(it.id) || (isNew && g === 'mandatory' && (st.state === 'red' || st.state === 'yellow') ? { partBrand:'' } : null); return workRow(it, pre, st); }).join('');
+    html += `<fieldset><legend>Обязательные работы</legend><p class="hint">Работы, подошедшие по регламенту, отмечены автоматически.</p>${rows('mandatory') || '<p class="hint">Список пуст. Добавьте работы в регламенте ТО.</p>'}</fieldset>
+      <fieldset><legend>Дополнительные работы</legend>${rows('additional')}</fieldset>
+      <fieldset><legend>Свои работы</legend><div id="custRows">${(r.items || []).filter(i => !i.itemId).map(custRow).join('')}</div><button type="button" class="btn small ghost" data-action="add-cust-row">Добавить работу</button></fieldset>`;
+  } else if (type === 'diagnostics') {
+    html += `<div class="grid2"><label class="f">Способ диагностики<select name="method">${['Сканер OBD-II','Дилер','СТО','Визуальный осмотр'].map(m => `<option ${r.method === m ? 'selected' : ''}>${m}</option>`).join('')}</select></label><label class="f">Стоимость диагностики, ₽<input type="number" min="0" name="laborCost" value="${num(r.laborCost) || ''}"></label></div>
+      <fieldset><legend>Коды ошибок</legend><div id="errRows">${(r.errors && r.errors.length ? r.errors : [{ status:'active' }]).map(errRow).join('')}</div><button type="button" class="btn small ghost" data-action="add-err-row">Добавить ошибку</button></fieldset>`;
+  } else if (type === 'minor' || type === 'major') {
+    html += `<label class="f">Неисправность<input name="title" value="${esc(r.title || '')}" required placeholder="Что случилось"></label>
+      <label class="f">Выполненные работы<textarea name="description">${esc(r.description || '')}</textarea></label>
+      <label class="f">Запчасти<input name="partsDesc" value="${esc(r.partsDesc || '')}" placeholder="Что меняли"></label>
+      <div class="grid2"><label class="f">Запчасти, ₽<input type="number" min="0" name="partsCost" value="${num(r.partsCost) || ''}"></label><label class="f">Работа, ₽<input type="number" min="0" name="laborCost" value="${num(r.laborCost) || ''}"></label>
+      <label class="f">Гарантия, мес.<input type="number" min="0" name="warrantyMonths" value="${num(r.warrantyMonths) || ''}"></label><label class="f">Гарантия, км<input type="number" min="0" name="warrantyKm" value="${num(r.warrantyKm) || ''}"></label></div>
+      <label class="f">Связанные коды ошибок<input name="linkedCodes" value="${esc(r.linkedCodes || '')}" placeholder="P0299, P0171" style="text-transform:uppercase"></label>`;
+    if (type === 'major') html += `<div class="grid2"><label class="f">Узел<select name="unit">${UNITS.map(u => `<option ${r.unit === u ? 'selected' : ''}>${u}</option>`).join('')}</select></label><label class="f">Номер заказ-наряда<input name="orderNo" value="${esc(r.orderNo || '')}"></label><label class="f">Простой с<input type="date" name="downFrom" value="${esc(r.downFrom || '')}"></label><label class="f">Простой по<input type="date" name="downTo" value="${esc(r.downTo || '')}"></label></div>`;
+  } else if (type === 'tire') {
+    const sets = state.tireSets.filter(t => t.carId === car.id);
+    if (!sets.length) return null;
+    const opt = (sel) => sets.map(t => `<option value="${t.id}" ${sel === t.id ? 'selected' : ''}>${esc(`${t.brand} ${t.model}, ${SEASONS[t.season]}`)}</option>`).join('');
+    const mounted = sets.find(t => t.mounted);
+    html += `<div class="grid2"><label class="f">Установили<select name="tireOn" required>${opt(r.tireOn || sets.find(t => !t.mounted)?.id)}</select></label><label class="f">Сняли<select name="tireOff"><option value="">Не указано</option>${opt(r.id ? r.tireOff : mounted?.id)}</select></label>
+      <label class="f">Шиномонтаж, ₽<input type="number" min="0" name="mountCost" value="${num(r.mountCost) || ''}"></label><label class="f">Хранение, ₽<input type="number" min="0" name="storageCost" value="${num(r.storageCost) || ''}"></label></div>
+      <label class="check"><input type="checkbox" name="balance" ${r.balance || !r.id ? 'checked' : ''}> Балансировка</label>`;
+  }
+  html += `<label class="f">Комментарий${type === 'minor' || type === 'major' ? ' (необязательно)' : ''}<textarea name="${type === 'minor' || type === 'major' ? 'comment' : 'description'}">${esc(type === 'minor' || type === 'major' ? (r.comment || '') : (r.description || ''))}</textarea></label>${attachField()}`;
+  return html;
+}
+function editRecord(carId, type, id){
+  const car = carById(carId); const r = id ? state.records.find(x => x.id === id) : null;
+  const html = recordForm(car, type, r);
+  if (html === null) { toast('Сначала добавьте комплект шин, потом записывайте смену.', 'warn'); return; }
+  openModal(`${r ? 'Изменить' : 'Новая'} запись: ${TYPES[type]}`, html, (fd, form) => {
+    const rec = r || { id:uid(), carId, type, createdAt:new Date().toISOString() };
+    rec.date = fd.get('date'); rec.mileage = num(fd.get('mileage')); rec.place = (fd.get('place')||'').trim();
+    rec.attachments = modalCtx.att.slice(0, 6); rec.updatedAt = new Date().toISOString(); delete rec.demo;
+    if (type === 'maintenance') {
+      rec.items = car.items.filter(it => fd.get('w_' + it.id)).map(it => ({ itemId:it.id, name:it.name, partBrand:(fd.get('wb_'+it.id)||'').trim(), partNumber:(fd.get('wn_'+it.id)||'').trim(), partCost:num(fd.get('wp_'+it.id)), laborCost:num(fd.get('wl_'+it.id)) }));
+      const cn = fd.getAll('cn'), cp = fd.getAll('cp'), cl = fd.getAll('cl');
+      cn.forEach((n, i) => { if (n.trim()) rec.items.push({ itemId:null, name:n.trim(), partBrand:'', partNumber:'', partCost:num(cp[i]), laborCost:num(cl[i]) }); });
+      if (!rec.items.length) { toast('Отметьте хотя бы одну работу.', 'warn'); return false; }
+      rec.description = (fd.get('description')||'').trim();
+    } else if (type === 'diagnostics') {
+      rec.method = fd.get('method'); rec.laborCost = num(fd.get('laborCost')); rec.partsCost = 0; rec.description = (fd.get('description')||'').trim();
+      const c = fd.getAll('ec'), d = fd.getAll('ed'), s = fd.getAll('es'), t = fd.getAll('et');
+      rec.errors = c.map((code, i) => ({ code:code.trim().toUpperCase(), desc:d[i].trim(), system:s[i], status:t[i] })).filter(e => e.code || e.desc);
+    } else if (type === 'minor' || type === 'major') {
+      ['title','description','partsDesc','comment'].forEach(k => rec[k] = (fd.get(k)||'').trim());
+      rec.linkedCodes = (fd.get('linkedCodes')||'').trim().toUpperCase();
+      ['partsCost','laborCost','warrantyMonths','warrantyKm'].forEach(k => rec[k] = num(fd.get(k)));
+      if (type === 'major') { rec.unit = fd.get('unit'); rec.orderNo = (fd.get('orderNo')||'').trim(); rec.downFrom = fd.get('downFrom'); rec.downTo = fd.get('downTo'); }
+      if (rec.comment) rec.description = rec.description ? rec.description + '\n' + rec.comment : rec.comment, rec.comment = '';
+    } else if (type === 'tire') {
+      rec.tireOn = fd.get('tireOn'); rec.tireOff = fd.get('tireOff'); rec.mountCost = num(fd.get('mountCost')); rec.storageCost = num(fd.get('storageCost'));
+      rec.laborCost = rec.mountCost + rec.storageCost; rec.partsCost = 0; rec.balance = !!fd.get('balance'); rec.description = (fd.get('description')||'').trim();
+      if (rec.tireOn === rec.tireOff) { toast('Установленный и снятый комплекты совпадают. Выберите разные.', 'warn'); return false; }
+    }
+    const prevMax = Math.max(0, ...recordsOf(carId).filter(x => x.id !== rec.id && x.date <= rec.date).map(x => num(x.mileage)));
+    if (rec.mileage < prevMax) toast(`Пробег ${fmtKm(rec.mileage)} меньше, чем в более ранней записи (${fmtKm(prevMax)}). Запись сохранена, проверьте цифры.`, 'warn');
+    if (!r) state.records.push(rec);
+    if (type === 'tire') syncMounted(carId);
+    commit(r ? 'Запись обновлена' : 'Запись добавлена');
+  });
+  bindFileInput('attach', 'att', 1000, 6);
+}
+
+/* ---- Tire set form ---- */
+function editTireSet(carId, id){
+  const t = id ? state.tireSets.find(x => x.id === id) : { season:'summer', tread:[] };
+  const v = k => esc(t[k] ?? '');
+  openModal(id ? 'Комплект шин' : 'Новый комплект шин', `<div class="grid3">
+    <label class="f">Сезон<select name="season">${Object.entries(SEASONS).map(([k,l]) => `<option value="${k}" ${t.season === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+    <label class="f">Бренд<input name="brand" value="${v('brand')}" required></label>
+    <label class="f">Модель<input name="model" value="${v('model')}" required></label>
+    <label class="f">Размер<input name="size" value="${v('size')}" placeholder="225/55 R18" required></label>
+    <label class="f">Индексы нагрузки и скорости<input name="index" value="${v('index')}" placeholder="98V"></label>
+    <label class="f">Год производства (DOT)<input name="dot" value="${v('dot')}" placeholder="2024"></label>
+    <label class="f">Диски<select name="rimType">${['Литые','Штампованные','Кованые','Без дисков'].map(x => `<option ${t.rimType === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
+    <label class="f">Размер дисков<input name="rimSize" value="${v('rimSize')}" placeholder="R18"></label>
+    <label class="f">Дата покупки<input type="date" name="purchaseDate" value="${v('purchaseDate')}"></label>
+    <label class="f">Стоимость, ₽<input type="number" min="0" name="cost" value="${num(t.cost) || ''}"></label>
+    ${id ? '' : '<label class="f">Протектор сейчас, мм<input type="number" step="0.1" min="0" name="tread"></label>'}
+  </div>
+  <label class="f">Место хранения<input name="storage" value="${v('storage')}" placeholder="Гараж, шинный отель: название, адрес, договор"></label>
+  <label class="check"><input type="checkbox" name="mounted" ${t.mounted ? 'checked' : ''}> Этот комплект сейчас на машине</label>`, fd => {
+    const data = Object.fromEntries(['season','brand','model','size','index','dot','rimType','rimSize','purchaseDate','storage'].map(k => [k, (fd.get(k)||'').trim()]));
+    data.cost = num(fd.get('cost')); const mounted = !!fd.get('mounted');
+    let set = id ? state.tireSets.find(x => x.id === id) : null;
+    if (set) { Object.assign(set, data); delete set.demo; }
+    else { set = { id:uid(), carId, tread:[], ...data }; if (fd.get('tread')) set.tread.push({ date:todayISO(), mm:num(fd.get('tread')) }); state.tireSets.push(set); }
+    if (mounted) state.tireSets.forEach(x => { if (x.carId === carId) x.mounted = x.id === set.id; }); else set.mounted = false;
+    commit('Комплект сохранён');
+  });
+}
+
+/* ---- Regulations ---- */
+function regRow(it){
+  return `<tr data-id="${esc(it.id)}"><td><input name="rn" value="${esc(it.name)}" aria-label="Название работы" required></td><td><select name="rg" aria-label="Группа"><option value="mandatory" ${it.group === 'mandatory' ? 'selected' : ''}>Обязательная</option><option value="additional" ${it.group === 'additional' ? 'selected' : ''}>Дополнительная</option></select></td><td><input name="rk" type="number" min="0" step="500" value="${num(it.km) || ''}" aria-label="Интервал, км" placeholder="—"></td><td><input name="rm" type="number" min="0" value="${num(it.months) || ''}" aria-label="Интервал, мес." placeholder="—"></td><td style="text-align:center"><input type="checkbox" name="ra_${esc(it.id)}" ${it.applicable ? 'checked' : ''} aria-label="Применимо"></td><td><button type="button" class="btn small danger icon" data-action="remove-reg" aria-label="Удалить работу">×</button></td></tr>`;
+}
+function editRegs(carId){
+  const car = carById(carId);
+  openModal(`Регламент ТО: ${carName(car)}`, `<p class="hint">Интервал срабатывает по тому, что наступит раньше: пробегу или времени. Пустое поле значит «без интервала». Уберите галочку «Применимо», если работа не нужна этой машине, например топливный фильтр внутри бака.</p>
+    <div class="tscroll"><table class="t" style="min-width:640px"><thead><tr><th>Работа</th><th>Группа</th><th>Каждые, км</th><th>Каждые, мес.</th><th>Применимо</th><th></th></tr></thead><tbody id="regRows">${car.items.map(regRow).join('')}</tbody></table></div>
+    <div><button type="button" class="btn small ghost" data-action="add-reg">Добавить работу</button></div>`, (fd, form) => {
+    const rows = $$('#regRows tr', form);
+    car.items = rows.map(tr => { const id = tr.dataset.id; return { id, name:$('[name=rn]', tr).value.trim(), group:$('[name=rg]', tr).value, km:num($('[name=rk]', tr).value), months:num($('[name=rm]', tr).value), applicable:$(`[name="ra_${CSS.escape(id)}"]`, tr).checked }; }).filter(i => i.name);
+    commit('Регламент сохранён');
+  });
+}
+
+/* =================== Report =================== */
+function reportParams(){
+  const f = $('#reportForm'); const fd = new FormData(f);
+  return { car:carById(f.dataset.car), from:fd.get('from'), to:fd.get('to'), sections:fd.getAll('sec'), photos:!!fd.get('photos') };
+}
+function reportData(p){
+  const all = recordsOf(p.car.id).sort(byDate);
+  const inP = all.filter(r => r.date >= p.from && r.date <= p.to);
+  const recs = inP.filter(r => p.sections.includes(r.type));
+  const before = all.filter(r => r.date < p.from);
+  let startKm = before.length ? Math.max(...before.map(r => num(r.mileage))) : (p.car.purchaseDate && p.car.purchaseDate >= p.from && p.car.purchaseDate <= p.to ? num(p.car.purchaseMileage) : (inP.length ? Math.min(...inP.map(r => num(r.mileage))) : null));
+  let endKm = inP.length ? Math.max(...inP.map(r => num(r.mileage))) : startKm;
+  if (p.to >= todayISO()) endKm = Math.max(endKm || 0, currentMileage(p.car));
+  const driven = startKm != null && endKm != null ? Math.max(0, endKm - startKm) : 0;
+  const byType = {}; Object.keys(TYPES).forEach(k => byType[k] = { n:0, parts:0, labor:0, total:0 });
+  recs.forEach(r => { const c = costsOf(r); const b = byType[r.type]; b.n++; b.parts += c.parts; b.labor += c.labor; b.total += c.total; });
+  const total = Object.values(byType).reduce((s, b) => s + b.total, 0);
+  return { recs, startKm, endKm, driven, byType, total, parts:Object.values(byType).reduce((s,b)=>s+b.parts,0), labor:Object.values(byType).reduce((s,b)=>s+b.labor,0) };
+}
+function updateReportSummary(){
+  const p = reportParams(); const el = $('#reportSummary'); if (!el) return;
+  if (!p.from || !p.to || p.from > p.to) { el.textContent = 'Выберите корректный период: дата «с» не позже даты «по».'; return; }
+  const d = reportData(p);
+  el.innerHTML = `За ${fmtDate(p.from)}–${fmtDate(p.to)}: записей ${d.recs.length}, пройдено ${fmtKm(d.driven)}, расходы ${fmtMoney(d.total)}${d.driven ? `, ${(d.total / d.driven).toFixed(2).replace('.', ',')} ₽ на километр` : ''}.`;
+}
+function applyPreset(k){
+  const f = $('#reportForm'); const t = new Date(); const y = t.getFullYear(), m = t.getMonth();
+  let a, b = toISO(t);
+  if (k === 'month') a = toISO(new Date(y, m, 1));
+  else if (k === 'prevmonth') { a = toISO(new Date(y, m-1, 1)); b = toISO(new Date(y, m, 0)); }
+  else if (k === 'quarter') a = toISO(new Date(y, Math.floor(m/3)*3, 1));
+  else if (k === 'year') a = `${y}-01-01`;
+  else if (k === 'prevyear') { a = `${y-1}-01-01`; b = `${y-1}-12-31`; }
+  else { const car = carById(f.dataset.car); const ds = recordsOf(car.id).map(r => r.date).concat(car.purchaseDate ? [car.purchaseDate] : []).sort(); a = ds[0] || b; }
+  f.from.value = a; f.to.value = b; updateReportSummary();
+}
+function generatePDF(){
+  if (!window.pdfMake) { toast('Модуль PDF не загрузился. Нужен интернет при первом открытии сайта, обновите страницу.', 'warn'); return; }
+  const p = reportParams();
+  if (!p.from || !p.to || p.from > p.to) { toast('Проверьте даты периода.', 'warn'); return; }
+  if (!p.sections.length) { toast('Отметьте хотя бы один раздел.', 'warn'); return; }
+  const d = reportData(p); const car = p.car;
+  const hdr = arr => arr.map(t => ({ text:t, style:'th' }));
+  const table = (widths, head, rows) => ({ table:{ headerRows:1, widths, body:[hdr(head), ...(rows.length ? rows : [[{ text:'Нет записей', colSpan:head.length, color:'#777' }, ...Array(head.length-1).fill('')]])] }, layout:'lightHorizontalLines', margin:[0,0,0,6] });
+  const content = [];
+  const titleStack = [
+    { text:'Бортовой журнал', style:'muted' },
+    { text:`${carName(car)}, ${car.year}`, style:'h1' },
+    { text:`Период: ${fmtDate(p.from)} – ${fmtDate(p.to)}`, margin:[0,6,0,0] },
+    { text:`VIN: ${car.vin || '—'}` }, { text:`Госномер: ${car.plate || '—'}` },
+    { text:`Двигатель: ${car.engine || '—'}` },
+    { text:`Отчёт сформирован ${fmtDate(todayISO())}`, style:'muted', margin:[0,6,0,0] },
+  ];
+  content.push(car.photo ? { columns:[{ image:car.photo, width:190 }, { stack:titleStack, margin:[16,0,0,0] }] } : { stack:titleStack });
+  content.push({ text:'Сводка', style:'h2' });
+  content.push(table(['*','auto'], ['Показатель','Значение'], [
+    ['Пробег на начало периода', fmtKm(d.startKm)], ['Пробег на конец периода', fmtKm(d.endKm)], ['Пройдено', fmtKm(d.driven)],
+    ...Object.entries(TYPES).filter(([k]) => p.sections.includes(k)).map(([k,l]) => [`Записей: ${l}`, String(d.byType[k].n)]),
+  ]));
+  content.push({ text:'Расходы', style:'h2' });
+  content.push(table(['*',70,70,80], ['Раздел','Запчасти','Работы','Итого'], [
+    ...Object.entries(TYPES).filter(([k]) => p.sections.includes(k)).map(([k,l]) => [l, fmtMoney(d.byType[k].parts), fmtMoney(d.byType[k].labor), fmtMoney(d.byType[k].total)]),
+    [{ text:'Всего', bold:true }, { text:fmtMoney(d.parts), bold:true }, { text:fmtMoney(d.labor), bold:true }, { text:fmtMoney(d.total), bold:true }],
+  ]));
+  if (d.driven) content.push({ text:`Стоимость 1 км пробега: ${(d.total / d.driven).toFixed(2).replace('.', ',')} ₽`, margin:[0,2,0,0] });
+  const rowsOf = t => d.recs.filter(r => r.type === t);
+  const sec = (t, title, widths, head, mapRow) => { if (!p.sections.includes(t)) return; content.push({ text:title, style:'h2' }); content.push(table(widths, head, rowsOf(t).map(mapRow))); };
+  sec('maintenance', 'Техническое обслуживание', [55,60,'*',90,60], ['Дата','Пробег','Работы','Где','Сумма'], r => [fmtDate(r.date), fmtKm(r.mileage), (r.items||[]).map(i => `• ${i.name}${i.partBrand ? ', ' + i.partBrand : ''}${i.partNumber ? ' (' + i.partNumber + ')' : ''}`).join('\n') + (r.description ? '\n' + r.description : ''), r.place || '', fmtMoney(costsOf(r).total)]);
+  sec('diagnostics', 'Диагностика', [55,60,'*',80,60], ['Дата','Пробег','Ошибки','Способ','Сумма'], r => [fmtDate(r.date), fmtKm(r.mileage), ((r.errors||[]).map(e => `${e.code} ${e.desc} (${ERR_STATUS[e.status]})`).join('\n') || 'Ошибок нет') + (r.description ? '\n' + r.description : ''), r.method || '', fmtMoney(costsOf(r).total)]);
+  const rep = r => [fmtDate(r.date), fmtKm(r.mileage), `${r.title || ''}${r.unit ? ' [' + r.unit + ']' : ''}\n${r.description || ''}${r.partsDesc ? '\nЗапчасти: ' + r.partsDesc : ''}${r.downFrom ? `\nПростой: ${fmtDate(r.downFrom)} – ${fmtDate(r.downTo)}` : ''}`, r.place || '', fmtMoney(costsOf(r).total)];
+  sec('minor', 'Мелкие ремонты', [55,60,'*',90,60], ['Дата','Пробег','Неисправность и работы','Исполнитель','Сумма'], rep);
+  sec('major', 'Крупные ремонты', [55,60,'*',90,60], ['Дата','Пробег','Неисправность и работы','Исполнитель','Сумма'], rep);
+  sec('tire', 'Смена шин', [55,60,'*',60], ['Дата','Пробег','Установлены / сняты','Сумма'], r => { const on = state.tireSets.find(t => t.id === r.tireOn), off = state.tireSets.find(t => t.id === r.tireOff); return [fmtDate(r.date), fmtKm(r.mileage), `${on ? `${on.brand} ${on.model} (${SEASONS[on.season]}, ${on.size})` : '—'}${off ? `\nСняты: ${off.brand} ${off.model}` : ''}`, fmtMoney(costsOf(r).total)]; });
+  const errs = []; d.recs.filter(r => r.type === 'diagnostics').forEach(r => (r.errors||[]).forEach(e => errs.push([e.code, e.desc || '', e.system || '', ERR_STATUS[e.status], fmtDate(r.date)])));
+  if (p.sections.includes('diagnostics')) { content.push({ text:'Ошибки за период', style:'h2' }); content.push(table([55,'*',80,70,55], ['Код','Описание','Система','Статус','Дата'], errs)); }
+  if (p.sections.includes('maintenance')) {
+    content.push({ text:`Состояние ТО на ${fmtDate(p.to)}`, style:'h2' });
+    const asOf = p.to < todayISO() ? p.to : null;
+    content.push(table(['*',95,95,95], ['Работа','Последняя замена','Следующая','Статус'], p.car.items.filter(i => i.group === 'mandatory' || num(i.km) || num(i.months)).map(it => { const s = itemStatus(car, it, asOf, asOf ? d.endKm : undefined); return [it.name, s.last ? `${fmtDate(s.last.date)}\n${fmtKm(s.last.mileage)}` : '—', s.last ? `${s.dueKm ? fmtKm(s.dueKm) : ''}${s.dueDate ? '\n' + fmtDate(s.dueDate) : ''}` : '—', { text:statusText(s), color: s.state === 'red' ? '#C0392B' : s.state === 'yellow' ? '#B7791F' : '#333' }]; })));
+  }
+  if (p.photos) {
+    const imgs = []; d.recs.forEach(r => (r.attachments||[]).forEach(a => imgs.push({ a, cap:`${fmtDate(r.date)}, ${TYPES[r.type]}` })));
+    if (imgs.length) {
+      content.push({ text:'Фото и документы', style:'h2', pageBreak:'before' });
+      for (let i = 0; i < imgs.length; i += 3) content.push({ columns:imgs.slice(i, i+3).map(x => ({ stack:[{ image:x.a, fit:[160,120] }, { text:x.cap, style:'muted', margin:[0,2,0,0] }] })), columnGap:12, margin:[0,0,0,12] });
+    }
+  }
+  const dd = {
+    pageSize:'A4', pageMargins:[40,40,40,50], info:{ title:`Бортовой журнал ${carName(car)}` },
+    defaultStyle:{ font:'Roboto', fontSize:9, lineHeight:1.2 },
+    footer:(cp, pc) => ({ columns:[{ text:`${carName(car)}, ${car.year}`, margin:[40,10,0,0] }, { text:`Страница ${cp} из ${pc}`, alignment:'right', margin:[0,10,40,0] }], fontSize:8, color:'#666' }),
+    content,
+    styles:{ h1:{ fontSize:20, bold:true }, h2:{ fontSize:13, bold:true, margin:[0,14,0,6] }, th:{ bold:true, fillColor:'#EEEEEE' }, muted:{ color:'#666', fontSize:8.5 } },
+  };
+  const safe = s => String(s).replace(/[^\p{L}\p{N}-]+/gu, '_');
+  try { pdfMake.createPdf(dd).download(`Журнал_${safe(car.make)}_${safe(car.model)}_${fmtDate(p.from)}-${fmtDate(p.to)}.pdf`); toast('PDF-отчёт сформирован'); }
+  catch (e) { console.error(e); toast('Не удалось собрать PDF. Попробуйте без миниатюр фото.', 'warn'); }
+}
+
+/* =================== Backup =================== */
+function exportData(){
+  state.settings.lastBackupAt = todayISO(); save();
+  const blob = new Blob([JSON.stringify(state, null, 1)], { type:'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `garage-backup-${todayISO()}.json`;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  render(); toast('Копия сохранена в файл');
+}
+$('#importFile').addEventListener('change', async e => {
+  const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+  let data; try { data = JSON.parse(await file.text()); } catch (err) { toast('Файл не читается. Выберите копию, сохранённую этим сайтом.', 'warn'); return; }
+  if (!data || !Array.isArray(data.cars) || !Array.isArray(data.records)) { toast('В файле нет журналов гаража. Выберите другую копию.', 'warn'); return; }
+  openModal('Загрузка копии', `<p>В файле: машин ${data.cars.length}, записей ${data.records.length}.</p>
+    <label class="check"><input type="radio" name="mode" value="merge" checked> Объединить с текущими данными</label>
+    <label class="check"><input type="radio" name="mode" value="replace"> Заменить всё текущее содержимое</label>`, fd => {
+    if (fd.get('mode') === 'replace') { state = { ...seed(), ...data, settings:{ ...seed().settings, ...(data.settings||{}) } }; }
+    else {
+      const merge = (a, b) => { const m = new Map(a.map(x => [x.id, x])); b.forEach(x => { const cur = m.get(x.id); if (!cur || (x.updatedAt || '') >= (cur.updatedAt || '')) m.set(x.id, x); }); return [...m.values()]; };
+      state.cars = merge(state.cars, data.cars); state.records = merge(state.records, data.records); state.tireSets = merge(state.tireSets, data.tireSets || []);
+    }
+    commit('Данные загружены');
+  }, 'Загрузить');
+});
+
+/* =================== Actions =================== */
+const actions = {
+  'toggle-theme'(){ const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); const next = cur === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = next; prefSet('garage-theme', next); syncThemeBtn(); },
+  'close-modal'(){ closeModal(); },
+  'add-car'(){ editCar(null); },
+  'edit-car'(d){ editCar(d.id); },
+  'delete-car'(d){ const car = carById(d.id); openModal('Удалить автомобиль?', `<p>${esc(carName(car))} и все его записи (${recordsOf(car.id).length}) будут удалены без возможности восстановления. Сначала можно сохранить копию в настройках.</p>`, () => { state.cars = state.cars.filter(c => c.id !== car.id); state.records = state.records.filter(r => r.carId !== car.id); state.tireSets = state.tireSets.filter(t => t.carId !== car.id); location.hash = '#/'; commit('Автомобиль удалён'); }, 'Удалить'); },
+  'update-mileage'(d){ const car = carById(d.id); openModal('Обновить пробег', `<label class="f">Текущий пробег ${esc(carName(car))}, км<input type="number" name="km" min="0" value="${currentMileage(car)}" required></label><p class="hint">Пробег из записей журнала учитывается автоматически, если он больше.</p>`, fd => { const km = num(fd.get('km')); if (km < currentMileage(car)) toast(`Пробег меньше, чем в журнале (${fmtKm(currentMileage(car))}). Показывается наибольшее значение.`, 'warn'); car.mileage = km; commit('Пробег обновлён'); }); },
+  'regs'(d){ editRegs(d.id); },
+  'add-reg'(){ $('#regRows').insertAdjacentHTML('beforeend', regRow({ id:'c_' + uid(), name:'', group:'additional', km:0, months:0, applicable:true })); $('#regRows tr:last-child input').focus(); },
+  'remove-reg'(d, el){ el.closest('tr').remove(); },
+  'add-record'(d){ editRecord(d.id, d.type); },
+  'edit-record'(d){ const r = state.records.find(x => x.id === d.id); editRecord(r.carId, r.type, r.id); },
+  'delete-record'(d){ const r = state.records.find(x => x.id === d.id); openModal('Удалить запись?', `<p>${TYPES[r.type]} от ${fmtDate(r.date)} на ${fmtKm(r.mileage)} будет удалена.</p>`, () => { state.records = state.records.filter(x => x.id !== r.id); if (r.type === 'tire') syncMounted(r.carId); commit('Запись удалена'); }, 'Удалить'); },
+  'add-cust-row'(){ $('#custRows').insertAdjacentHTML('beforeend', custRow()); $('#custRows .row:last-child input').focus(); },
+  'add-err-row'(){ $('#errRows').insertAdjacentHTML('beforeend', errRow({ status:'active' })); $('#errRows .row:last-child input').focus(); },
+  'remove-row'(d, el){ el.closest('.row').remove(); },
+  'remove-thumb'(d){ modalCtx[d.key].splice(Number(d.idx), 1); $(`#th_${d.key}`).innerHTML = thumbsEditor(d.key); },
+  'resolve-error'(d){ const r = state.records.find(x => x.id === d.id); if (r && r.errors[d.idx]) { r.errors[d.idx].status = 'resolved'; r.updatedAt = new Date().toISOString(); commit('Ошибка отмечена устранённой'); } },
+  'add-tireset'(d){ editTireSet(d.id); },
+  'edit-tireset'(d){ const t = state.tireSets.find(x => x.id === d.id); editTireSet(t.carId, t.id); },
+  'delete-tireset'(d){ const t = state.tireSets.find(x => x.id === d.id); openModal('Удалить комплект?', `<p>${esc(t.brand)} ${esc(t.model)} будет удалён. Записи смены шин останутся.</p>`, () => { state.tireSets = state.tireSets.filter(x => x.id !== t.id); commit('Комплект удалён'); }, 'Удалить'); },
+  'add-tread'(d){ const t = state.tireSets.find(x => x.id === d.id); openModal('Замер протектора', `<div class="grid2"><label class="f">Дата<input type="date" name="date" value="${todayISO()}" required></label><label class="f">Глубина, мм<input type="number" step="0.1" min="0" max="20" name="mm" required></label></div><p class="hint">Минимум по закону: 1,6 мм для летних и 4 мм для зимних шин.</p>`, fd => { t.tread = [...(t.tread||[]), { date:fd.get('date'), mm:num(fd.get('mm')) }]; delete t.demo; commit('Замер сохранён'); }); },
+  'report-preset'(d){ applyPreset(d.preset); },
+  'report-generate'(){ generatePDF(); },
+  'view-photo'(d){ const car = carById(d.id); const src = d.src === 'main' ? car.photo : car.photos[Number(d.src)]; if (src) { $('#viewerImg').src = src; $('#viewer').showModal(); } },
+  'view-attach'(d){ const r = state.records.find(x => x.id === d.id); $('#viewerImg').src = r.attachments[Number(d.src)]; $('#viewer').showModal(); },
+  'save-season'(){ const f = $('#seasonForm'); const s = f.summer.value.slice(5), w = f.winter.value.slice(5); if (!s || !w || s >= w) { toast('Дата смены на летние должна быть раньше даты смены на зимние.', 'warn'); return; } state.settings.toSummer = s; state.settings.toWinter = w; commit('Даты сохранены'); },
+  'export'(){ exportData(); },
+  'import'(){ $('#importFile').click(); },
+  'remove-demo'(){ openModal('Удалить примеры?', '<p>Будут удалены демонстрационные записи и комплекты шин. Ваши собственные записи и карточки машин останутся.</p>', () => { state.records = state.records.filter(r => !r.demo); state.tireSets = state.tireSets.filter(t => !t.demo); commit('Примеры удалены'); }, 'Удалить примеры'); },
+  'reset'(){ openModal('Стереть всё?', '<p>Все машины, записи и фото будут удалены, гараж вернётся к исходному виду с тремя машинами и примерами. Отменить нельзя.</p>', () => { state = seed(); location.hash = '#/'; commit('Гараж очищен'); }, 'Стереть'); },
+  async 'notify-enable'(){ if (!('Notification' in window)) { toast('Этот браузер не поддерживает уведомления.', 'warn'); return; } const p = await Notification.requestPermission(); toast(p === 'granted' ? 'Уведомления включены' : 'Уведомления не разрешены в браузере.'); if (p === 'granted') notifyOverdue(true); },
+};
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-action]'); if (!a) return;
+  const fn = actions[a.dataset.action]; if (!fn) return;
+  e.preventDefault(); fn(a.dataset, a, e);
+});
+document.addEventListener('input', e => { if (e.target.closest('#reportForm')) updateReportSummary(); if (e.target.closest('#logForm')) renderLogList(); });
+document.addEventListener('change', e => { if (e.target.closest('#reportForm')) updateReportSummary(); });
+
+function syncThemeBtn(){ const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); $('#themeBtn').textContent = cur === 'dark' ? 'День' : 'Ночь'; $('#themeBtn').setAttribute('aria-label', cur === 'dark' ? 'Включить дневной гараж' : 'Включить ночной гараж'); }
+function notifyOverdue(force){
+  const reds = collectReminders().filter(x => x.level === 'red');
+  if (!reds.length) return;
+  try { if ('Notification' in window && Notification.permission === 'granted') new Notification('Мой гараж', { body:`Просрочено: ${reds.length}. ${reds[0].car.model}: ${reds[0].text}` }); } catch (e) {}
+}
+
+/* =================== Start =================== */
+(async function init(){
+  const th = prefGet('garage-theme'); if (th) document.documentElement.dataset.theme = th; syncThemeBtn();
+  state = await loadState() || seed();
+  state.settings = { toWinter:'10-15', toSummer:'04-15', lastBackupAt:null, createdAt:todayISO(), ...(state.settings || {}) };
+  state.tireSets = state.tireSets || [];
+  save(); lastRoute = location.hash; render();
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+  const rem = collectReminders(); const reds = rem.filter(x => x.level === 'red').length, yel = rem.filter(x => x.level === 'yellow').length;
+  if (reds || yel) toast(`Внимание: просрочено ${reds}, скоро подойдёт ${yel}.`, 'warn', { label:'Открыть', href:'#/reminders' });
+  const lb = state.settings.lastBackupAt || state.settings.createdAt;
+  if (lb && diffDays(lb, todayISO()) > 30) toast('Резервной копии больше 30 дней. Сохраните журналы в файл.', 'warn', { label:'Сохранить', href:'#/settings' });
+  if (memoryMode) toast('Браузер не даёт хранить данные на этой странице. Скачайте файл и откройте его локально, чтобы журналы сохранялись.', 'warn');
+  notifyOverdue();
+})();
+</script>
+</body>
+</html>
